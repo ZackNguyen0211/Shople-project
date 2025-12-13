@@ -9,8 +9,6 @@ export default function GlobalError({ error, reset }: Props) {
   const isDev = useMemo(() => process.env.NODE_ENV !== 'production', []);
 
   useEffect(() => {
-    // Always log full error to console for debugging
-    // eslint-disable-next-line no-console
     console.error(error);
   }, [error]);
 

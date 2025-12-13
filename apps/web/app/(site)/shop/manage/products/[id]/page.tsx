@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { getClientDict } from '../../../../../lib/i18n-client';
-import ImageUploader from '../../../../../components/ImageUploader';
+import { getClientDict } from '../../../../../../lib/i18n-client';
+import ImageUploader from '../../../../../../components/ImageUploader';
 
 type Shop = { id: number; name: string };
 type Product = { id: number; title: string; price: number; description?: string | null; shopId: number; images?: { url: string; sortOrder: number }[] };
 
-export default function EditProductPage() {
+export default function ShopEditProductPage() {
   const router = useRouter();
   const params = useParams();
   const t = getClientDict();
@@ -64,7 +64,7 @@ export default function EditProductPage() {
   async function remove() {
     if (!confirm(t.messages.deleteConfirm)) return;
     const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
-    if (res.ok) router.push('/admin/products');
+    if (res.ok) router.push('/shop/manage');
   }
 
   if (loading || !product) {

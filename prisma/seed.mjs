@@ -4,7 +4,6 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  // Simple password for local testing
   const passwordHash = await bcrypt.hash('1', 10);
 
   const [admin, user, ...shopOwners] = await Promise.all([
@@ -18,7 +17,6 @@ async function main() {
       update: {},
       create: { email: 'user@local', password: passwordHash, name: 'user', role: 'USER' },
     }),
-    // 6 shop owners
     prisma.user.upsert({ where: { email: 'shop1@local' }, update: {}, create: { email: 'shop1@local', password: passwordHash, name: 'shop1', role: 'SHOP' } }),
     prisma.user.upsert({ where: { email: 'shop2@local' }, update: {}, create: { email: 'shop2@local', password: passwordHash, name: 'shop2', role: 'SHOP' } }),
     prisma.user.upsert({ where: { email: 'shop3@local' }, update: {}, create: { email: 'shop3@local', password: passwordHash, name: 'shop3', role: 'SHOP' } }),

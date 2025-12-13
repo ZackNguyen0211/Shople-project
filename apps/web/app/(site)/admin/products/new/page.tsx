@@ -1,7 +1,9 @@
 "use client";
+
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getClientDict } from '../../../../lib/i18n-client';
+import ImageUploader from '../../../../components/ImageUploader';
 
 type Shop = { id: number; name: string };
 
@@ -10,6 +12,7 @@ export default function CreateProductPage() {
   const t = getClientDict();
   const [shops, setShops] = useState<Shop[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
+  const [images, setImages] = useState<string[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -26,10 +29,7 @@ export default function CreateProductPage() {
       price: Number(fd.get('price') || 0),
       description: String(fd.get('description') || ''),
       shopId: Number(fd.get('shopId') || 0),
-      imageUrls: String(fd.get('imageUrls') || '')
-        .split(/\n|,/)
-        .map((s) => s.trim())
-        .filter(Boolean),
+      imageUrls: images,
     };
     if (!payload.title || !Number.isFinite(payload.price) || !Number.isFinite(payload.shopId)) {
       setMsg(t.auth.quickSecure);
@@ -65,10 +65,7 @@ export default function CreateProductPage() {
           <span>{t.forms.description}</span>
           <textarea className="input" name="description" />
         </label>
-        <label style={{ display: 'grid', gap: 4 }}>
-          <span>Image URLs (mỗi dòng một link)</span>
-          <textarea className="input" name="imageUrls" placeholder="https://...\nhttps://..." />
-        </label>
+        <ImageUploader label="Images" initialUrls={[]} onChange={setImages} />
         <label style={{ display: 'grid', gap: 4 }}>
           <span>{t.forms.shop}</span>
           <select className="input" name="shopId" required>

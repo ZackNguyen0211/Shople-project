@@ -15,21 +15,21 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
         {/* Top utility row */}
         <div className="container header-top">
           <nav className="top-links">
-            <Link href={{ pathname: '/shops' }}>{t.nav.shops}</Link>
+            <Link href="/shops">{t.nav.shops}</Link>
             <span className="sep">|</span>
-            <Link href={{ pathname: '/orders' }}>{t.nav.orders}</Link>
+            <Link href="/orders">{t.nav.orders}</Link>
             <span className="sep">|</span>
-            <Link href={{ pathname: '/account' }}>{t.nav.account}</Link>
+            <Link href="/account">{t.nav.account}</Link>
             {user?.role === 'SHOP' ? (
               <>
                 <span className="sep">|</span>
-                <Link href={{ pathname: '/shop/manage' }}>{t.nav.shopManage}</Link>
+                <Link href="/shop/manage">{t.nav.shopManage}</Link>
               </>
             ) : null}
             {user?.role === 'ADMIN' ? (
               <>
                 <span className="sep">|</span>
-                <Link href={{ pathname: '/admin' }}>{t.nav.admin}</Link>
+                <Link href="/admin">{t.nav.admin}</Link>
               </>
             ) : null}
           </nav>
@@ -44,14 +44,12 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
         </div>
         {/* Main row: logo | search | actions */}
         <div className="container header-main">
-          <Link className="logo" href={{ pathname: '/' }}>
-            {t.appName}
-          </Link>
+          <Link className="logo" href="/">{t.appName}</Link>
           <div className="main-search">
             <SearchBar placeholder={t.search.placeholder} buttonLabel={t.search.button} />
           </div>
           <div className="header-actions">
-            <Link href={{ pathname: '/cart' }} className="iconbtn" aria-label={t.nav.cart}>
+            <Link href="/cart" className="iconbtn" aria-label={t.nav.cart}>
               <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true">
                 <path d="M3 3h2l2 12h10l2-8H6" stroke="currentColor" strokeWidth="1.6"/>
                 <circle cx="9" cy="20" r="1.6" fill="currentColor"/>
@@ -74,8 +72,8 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
             <div className="muted">{t.footer.links}</div>
             <div style={{ display: 'grid' }}>
               <Link href={{ pathname: '/' }}>{t.footer.home}</Link>
-              <Link href={{ pathname: '/shops' }}>{t.footer.shops}</Link>
-              <Link href={{ pathname: '/orders' }}>{t.footer.orders}</Link>
+              <Link href="/shops">{t.footer.shops}</Link>
+              <Link href="/orders">{t.footer.orders}</Link>
             </div>
           </div>
           <div>

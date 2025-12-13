@@ -1,12 +1,15 @@
 "use client";
+
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import ImageUploader from '../../../../components/ImageUploader';
 
 type Shop = { id: number; name: string };
 
 export default function NewProductForm({ shops, lang = 'vi' }: { shops: Shop[]; lang?: 'vi' | 'en' }) {
   const router = useRouter();
   const [msg, setMsg] = useState<string | null>(null);
+  const [images, setImages] = useState<string[]>([]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -14,7 +17,6 @@ export default function NewProductForm({ shops, lang = 'vi' }: { shops: Shop[]; 
     const title = String(fd.get('title') || '').trim();
     const price = Number(fd.get('price') || 0);
     const description = String(fd.get('description') || '');
-    const imageUrls = String(fd.get('imageUrls') || '');
     const shopId = Number(fd.get('shopId') || 0);
     if (!title || !Number.isFinite(price) || !Number.isFinite(shopId)) {
       setMsg(lang === 'en' ? 'Please fill all required fields' : 'Vui lòng điền đầy đủ các trường bắt buộc');
@@ -23,11 +25,12 @@ export default function NewProductForm({ shops, lang = 'vi' }: { shops: Shop[]; 
     const res = await fetch(`/api/shops/${shopId}/products`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, price, description, imageUrls }),
+      body: JSON.stringify({ title, price, description, imageUrls: images }),
     });
     if (res.ok) {
       setMsg(lang === 'en' ? 'Product created' : 'Thêm sản phẩm thành công');
       e.currentTarget.reset();
+      setImages([]);
       router.refresh();
       setTimeout(() => setMsg(null), 1200);
     } else {
@@ -53,10 +56,7 @@ export default function NewProductForm({ shops, lang = 'vi' }: { shops: Shop[]; 
         <span>{lang === 'en' ? 'Description' : 'Mô tả'}</span>
         <textarea className="input" name="description" />
       </label>
-      <label style={{ display: 'grid', gap: 4 }}>
-        <span>{lang === 'en' ? 'Image URLs (one per line)' : 'Link ảnh (mỗi dòng một link)'}</span>
-        <textarea className="input" name="imageUrls" placeholder={lang === 'en' ? 'https://...\nhttps://...' : 'https://...\nhttps://...'} />
-      </label>
+      <ImageUploader label={lang === 'en' ? 'Images' : 'Ảnh sản phẩm'} initialUrls={[]} onChange={setImages} />
       <label style={{ display: 'grid', gap: 4 }}>
         <span>{lang === 'en' ? 'Select Shop' : 'Chọn Shop'}</span>
         <select className="input" name="shopId" required>

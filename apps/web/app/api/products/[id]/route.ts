@@ -11,7 +11,10 @@ export async function GET(_req: NextRequest, { params }: Params) {
   if (Number.isNaN(id)) {
     return NextResponse.json({ error: 'Invalid product id' }, { status: 400 });
   }
-  const product = await prisma.product.findUnique({ where: { id } });
+  const product = await prisma.product.findUnique({
+    where: { id },
+    include: { shop: { select: { ownerId: true } } },
+  });
   if (!product) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
@@ -29,18 +32,42 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (Number.isNaN(id)) return NextResponse.json({ error: 'Invalid product id' }, { status: 400 });
   const token = req.cookies.get(getAuthCookieName())?.value;
   const current = token ? verifyAuthToken(token) : null;
-  if (!current || current.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+  if (!current) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (current.role !== 'ADMIN') {
+    const prod = await prisma.product.findUnique({ where: { id }, select: { shop: { select: { ownerId: true } } } });
+    if (!prod || prod.shop.ownerId !== current.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+  }
+
   const body = await req.json();
   const title = typeof body.title === 'string' ? body.title.trim() : undefined;
   const description = typeof body.description === 'string' ? body.description : undefined;
   const price = body.price != null ? Number(body.price) : undefined;
   const shopId = body.shopId != null ? Number(body.shopId) : undefined;
+  const hasImageUrls = body.imageUrls !== undefined;
+  const imageUrls: string[] = Array.isArray(body.imageUrls)
+    ? body.imageUrls.map((s: unknown) => String(s || '').trim()).filter(Boolean)
+    : typeof body.imageUrls === 'string'
+      ? String(body.imageUrls)
+          .split(/\n|,/)
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : [];
 
   const data: Prisma.ProductUpdateInput = {};
   if (title) data.title = title;
   if (description !== undefined) data.description = description;
   if (Number.isFinite(price)) data.price = price as number;
   if (Number.isFinite(shopId)) data.shop = { connect: { id: shopId as number } };
+  if (hasImageUrls) {
+    data.imageUrl = imageUrls[0] || null;
+    data.images = {
+      deleteMany: {},
+      ...(imageUrls.length ? { create: imageUrls.map((url: string, i: number) => ({ url, sortOrder: i })) } : {}),
+    };
+  }
 
   const updated = await prisma.product.update({ where: { id }, data });
   return NextResponse.json(updated);
@@ -51,8 +78,15 @@ export async function DELETE(req: NextRequest, { params }: Params) {
   if (Number.isNaN(id)) return NextResponse.json({ error: 'Invalid product id' }, { status: 400 });
   const token = req.cookies.get(getAuthCookieName())?.value;
   const current = token ? verifyAuthToken(token) : null;
-  if (!current || current.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+  if (!current) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (current.role !== 'ADMIN') {
+    const prod = await prisma.product.findUnique({ where: { id }, select: { shop: { select: { ownerId: true } } } });
+    if (!prod || prod.shop.ownerId !== current.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+  }
+
   await prisma.product.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }
-
