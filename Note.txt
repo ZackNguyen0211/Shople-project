@@ -1,0 +1,2 @@
+- Admin Dashboard ko truy cập đc (bị load về trang chủ)
+- Trang Order, Cart đang lỗi
