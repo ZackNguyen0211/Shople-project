@@ -3,9 +3,9 @@ import type { Route } from 'next';
 import { redirect } from 'next/navigation';
 
 import { getCurrentUser } from '../../../lib/auth';
-import { formatVND, statusLabel } from '../../../lib/format';
 import { getDict, getLang } from '../../../lib/i18n';
 import { getDb, mapOrderItem } from '../../../lib/db';
+import AdminDashboard from './AdminDashboard';
 
 export default async function AdminPage() {
   const user = getCurrentUser();
@@ -14,23 +14,18 @@ export default async function AdminPage() {
   }
 
   const supabase = getDb();
-  const [
-    usersCountRes,
-    shopsCountRes,
-    productsCountRes,
-    ordersRes,
-    revenueRes,
-  ] = await Promise.all([
-    supabase.from('users').select('id', { count: 'exact', head: true }),
-    supabase.from('shops').select('id', { count: 'exact', head: true }),
-    supabase.from('products').select('id', { count: 'exact', head: true }),
-    supabase
-      .from('orders')
-      .select('id,status,created_at,items:order_items(id,product_id,price,quantity)')
-      .order('created_at', { ascending: false })
-      .range(0, 4),
-    supabase.from('orders').select('total_cents').eq('status', 'PAID'),
-  ]);
+  const [usersCountRes, shopsCountRes, productsCountRes, ordersRes, revenueRes] = await Promise.all(
+    [
+      supabase.from('users').select('id', { count: 'exact', head: true }),
+      supabase.from('shops').select('id', { count: 'exact', head: true }),
+      supabase.from('products').select('id', { count: 'exact', head: true }),
+      supabase
+        .from('orders')
+        .select('id,status,created_at,items:order_items(id,product_id,price,quantity),total_cents')
+        .order('created_at', { ascending: false }),
+      supabase.from('orders').select('total_cents').eq('status', 'PAID'),
+    ]
+  );
 
   const usersCount = usersCountRes.count || 0;
   const shopsCount = shopsCountRes.count || 0;
@@ -38,75 +33,126 @@ export default async function AdminPage() {
   const orders = (ordersRes.data || []).map((row) => ({
     id: row.id,
     status: row.status,
+    created_at: row.created_at,
     items: (row.items || []).map(mapOrderItem),
+    total_cents: row.total_cents || 0,
   }));
-  const revenueVnd = (revenueRes.data || []).reduce(
-    (sum, row) => sum + (row.total_cents || 0),
-    0
-  );
+  const revenueVnd = (revenueRes.data || []).reduce((sum, row) => sum + (row.total_cents || 0), 0);
 
   const lang = getLang();
   const t = getDict(lang);
 
+  // Prepare translation strings for Client Component (no functions)
+  const translations = {
+    adminPage: {
+      title: t.adminPage.title,
+      revenue: t.adminPage.revenue,
+      users: t.adminPage.users,
+      shops: t.adminPage.shops,
+      products: t.adminPage.products,
+      recentOrders: t.adminPage.recentOrders,
+      noRecent: t.adminPage.noRecent,
+    },
+    adminButtons: {
+      users: t.adminButtons.users,
+      shops: t.adminButtons.shops,
+      products: t.adminButtons.products,
+      orders: t.adminButtons.orders,
+    },
+    tables: {
+      id: t.tables.id,
+      items: t.tables.items,
+      total: t.tables.total,
+      status: t.tables.status,
+    },
+  };
+
   return (
     <div className="container" style={{ padding: 0 }}>
-      <h1 className="page-title">{t.adminPage.title}</h1>
+      <AdminDashboard
+        usersCount={usersCount}
+        shopsCount={shopsCount}
+        productsCount={productsCount}
+        orders={orders}
+        revenueVnd={revenueVnd}
+        translations={translations}
+        lang={lang}
+      />
 
-      <div className="card-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
-        <div className="card">
-          <div className="muted">{t.adminPage.revenue}</div>
-          <div className="price">{formatVND(revenueVnd)}</div>
-        </div>
-        <div className="card">
-          <div className="muted">{t.adminPage.users}</div>
-          <div className="price">{usersCount}</div>
-        </div>
-        <div className="card">
-          <div className="muted">{t.adminPage.shops}</div>
-          <div className="price">{shopsCount}</div>
-        </div>
-        <div className="card">
-          <div className="muted">{t.adminPage.products}</div>
-          <div className="price">{productsCount}</div>
-        </div>
-      </div>
-
-      <div className="section" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <Link className="btn" href={`/admin/users` as Route}>{t.adminButtons.users}</Link>
-        <Link className="btn" href={`/admin/shops` as Route}>{t.adminButtons.shops}</Link>
-        <Link className="btn" href={`/admin/products` as Route}>{t.adminButtons.products}</Link>
-        <Link className="btn" href={`/admin/orders` as Route}>{t.adminButtons.orders}</Link>
-      </div>
-
-      <div className="card section" style={{ overflowX: 'auto' }}>
-        <h2 className="page-title" style={{ fontSize: 18 }}>{t.adminPage.recentOrders}</h2>
-        {orders.length === 0 ? (
-          <p className="muted">{t.adminPage.noRecent}</p>
-        ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>{t.tables.id}</th>
-                <th>{t.tables.items}</th>
-                <th>{t.tables.total}</th>
-                <th>{t.tables.status}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map((o) => {
-                const total = o.items.reduce((s, it) => s + it.price * it.quantity, 0);
-                return (
-                  <tr key={o.id}>
-                    <td>#{o.id}</td>
-                    <td>{o.items.length}</td>
-                    <td>{formatVND(total)}</td>
-                    <td>{statusLabel(o.status, lang)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
+      {/* Management Buttons */}
+      <div style={{ marginTop: 40, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <Link
+          className="btn"
+          href={`/admin/users` as Route}
+          style={{
+            background: 'linear-gradient(135deg, #52a373 0%, #2f6d54 100%)',
+            color: 'white',
+            textDecoration: 'none',
+            padding: '12px 24px',
+            borderRadius: 8,
+            fontWeight: 500,
+            fontSize: 14,
+            border: 'none',
+            cursor: 'pointer',
+            display: 'inline-block',
+          }}
+        >
+          👥 {t.adminButtons.users}
+        </Link>
+        <Link
+          className="btn"
+          href={`/admin/shops` as Route}
+          style={{
+            background: 'linear-gradient(135deg, #3a8068 0%, #2f6d54 100%)',
+            color: 'white',
+            textDecoration: 'none',
+            padding: '12px 24px',
+            borderRadius: 8,
+            fontWeight: 500,
+            fontSize: 14,
+            border: 'none',
+            cursor: 'pointer',
+            display: 'inline-block',
+          }}
+        >
+          🏪 {t.adminButtons.shops}
+        </Link>
+        <Link
+          className="btn"
+          href={`/admin/products` as Route}
+          style={{
+            background: 'linear-gradient(135deg, #5db876 0%, #3a8068 100%)',
+            color: 'white',
+            textDecoration: 'none',
+            padding: '12px 24px',
+            borderRadius: 8,
+            fontWeight: 500,
+            fontSize: 14,
+            border: 'none',
+            cursor: 'pointer',
+            display: 'inline-block',
+          }}
+        >
+          📦 {t.adminButtons.products}
+        </Link>
+        <Link
+          className="btn"
+          href={`/admin/orders` as Route}
+          style={{
+            background: 'linear-gradient(135deg, #2f6d54 0%, #1e4d3a 100%)',
+            color: 'white',
+            textDecoration: 'none',
+            padding: '12px 24px',
+            borderRadius: 8,
+            fontWeight: 500,
+            fontSize: 14,
+            border: 'none',
+            cursor: 'pointer',
+            display: 'inline-block',
+          }}
+        >
+          📋 {t.adminButtons.orders}
+        </Link>
       </div>
     </div>
   );

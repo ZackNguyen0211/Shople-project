@@ -4,8 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { getClientDict } from '../../../../../../lib/i18n-client';
 import ImageUploader from '../../../../../../components/ImageUploader';
-
-type Shop = { id: number; name: string };
 type Product = {
   id: number;
   title: string;
@@ -21,14 +19,13 @@ export default function ShopEditProductPage() {
   const t = getClientDict();
   const id = Number(params?.id);
   const [loading, setLoading] = useState(true);
-  const [shops, setShops] = useState<Shop[]>([]);
   const [product, setProduct] = useState<Product | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [images, setImages] = useState<string[]>([]);
 
   useEffect(() => {
     async function load() {
-      const [pRes, sRes] = await Promise.all([fetch(`/api/products/${id}`), fetch(`/api/shops`)]);
+      const pRes = await fetch(`/api/products/${id}`);
       if (pRes.ok) {
         const data = (await pRes.json()) as Product;
         setProduct(data);
@@ -37,7 +34,6 @@ export default function ShopEditProductPage() {
           .map((i) => i.url);
         setImages(sorted);
       }
-      if (sRes.ok) setShops(await sRes.json());
       setLoading(false);
     }
     if (Number.isFinite(id)) load();
@@ -45,6 +41,7 @@ export default function ShopEditProductPage() {
 
   async function save(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!product) return;
     const fd = new FormData(e.currentTarget);
     const payload = {
       title: String(fd.get('title') || ''),
@@ -74,6 +71,7 @@ export default function ShopEditProductPage() {
 
   async function remove() {
     if (!confirm(t.messages.deleteConfirm)) return;
+    if (!product) return;
     const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
     if (res.ok) router.push('/shop/manage');
   }

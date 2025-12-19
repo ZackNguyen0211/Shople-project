@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     const supabase = getDb();
     const { data: user, error } = await supabase
       .from('users')
-      .select('id,email,name,role,password')
+      .select('id,email,name,role,password,avatar_url')
       .eq('email', email)
       .maybeSingle();
     const invalidUrl = new URL('/login', req.url);
@@ -45,7 +45,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.redirect(invalidUrl);
     }
 
-    const token = signAuthToken({ id: user.id, email: user.email, name: user.name, role: user.role });
+    const token = signAuthToken({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      avatar_url: user.avatar_url,
+    });
     const destination = nextParam.startsWith('/') ? nextParam : '/';
     const redirect = NextResponse.redirect(new URL(destination, req.url));
     redirect.cookies.set(getAuthCookieName(), token, authCookieOptions);

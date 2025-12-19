@@ -79,21 +79,25 @@ textarea:focus {
 /* Layout */
 .container {
   width: 100%;
-  max-width: 1100px;
+  max-width: 1240px;
   margin: 0 auto;
   padding: 0 16px;
 }
 /* Widen header containers specifically so the search bar can grow */
 /* revert header container to default */
 /* .header .container override removed to keep global container width */
+.header .container {
+  max-width: 1200px;
+}
 
 .header {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: #fff;
-  border-bottom: 1px solid #e5e7eb;
-  box-shadow: 0 2px 12px rgba(31, 77, 58, 0.06);
+  background: var(--primary);
+  color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
 }
 .header-top {
   display: flex;
@@ -101,15 +105,21 @@ textarea:focus {
   justify-content: space-between;
   padding: 6px 0;
   font-size: 12px;
-  color: #0f172a;
+  color: #fff;
 }
 .top-links {
   display: flex;
   gap: 10px;
   align-items: center;
 }
+.top-links a {
+  color: #fff;
+}
+.top-links a:hover {
+  color: #e5f3ed;
+}
 .top-links .sep {
-  color: #94a3b8;
+  color: rgba(255, 255, 255, 0.6);
 }
 .top-actions {
   display: flex;
@@ -118,15 +128,15 @@ textarea:focus {
 }
 .header-main {
   display: grid;
-  grid-template-columns: 200px 1fr 120px;
+  grid-template-columns: 180px 1fr 220px;
   align-items: center;
   gap: 12px;
   padding: 10px 0 12px;
 }
 .logo {
   font-weight: 700;
-  color: var(--primary);
-  font-size: 22px;
+  color: #fff;
+  font-size: 32px;
 }
 .searchbar {
   flex: 1;
@@ -155,11 +165,47 @@ textarea:focus {
   padding: 0 4px;
   display: flex;
 }
+.header .searchbar input {
+  background: #f5fbf8;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+.header .searchbar input:focus {
+  border-color: #fff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25);
+}
+.header .searchbar button {
+  background: #fff;
+  color: var(--primary);
+  border: none;
+}
+.header .searchbar button:hover {
+  background: #f0f7f3;
+}
+.header .searchbar button:active {
+  background: #e3efe8;
+}
 .header-actions {
   display: flex;
   justify-content: flex-end;
   align-items: center;
   gap: 8px;
+}
+.header .top-actions button,
+.header .top-actions .btn-outline,
+.header .header-actions button {
+  background: #fff;
+  color: var(--primary);
+  border: none;
+}
+.header .top-actions button:hover,
+.header .top-actions .btn-outline:hover,
+.header .header-actions button:hover {
+  background: #f0f7f3;
+}
+.header .top-actions button:active,
+.header .top-actions .btn-outline:active,
+.header .header-actions button:active {
+  background: #e3efe8;
 }
 .iconbtn {
   display: inline-flex;
@@ -168,12 +214,16 @@ textarea:focus {
   width: 38px;
   height: 38px;
   border-radius: 10px;
-  border: 1px solid #e5e7eb;
+  border: none;
   color: var(--primary);
   background: #fff;
 }
 .iconbtn:hover {
-  background: #f8faf9;
+  background: #f0f7f3;
+}
+.header .top-actions a,
+.header .top-actions a:hover {
+  color: #fff;
 }
 
 /* Components */

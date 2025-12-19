@@ -46,7 +46,9 @@ export async function POST(req: NextRequest) {
 
   const form = await req.formData();
   const name = String(form.get('name') || '').trim();
-  const email = String(form.get('email') || '').trim().toLowerCase();
+  const email = String(form.get('email') || '')
+    .trim()
+    .toLowerCase();
   const password = String(form.get('password') || '');
   const confirm = String(form.get('confirm') || '');
   const nextParam = String(form.get('next') || '') || req.nextUrl.searchParams.get('next') || '/';
@@ -95,7 +97,7 @@ export async function POST(req: NextRequest) {
     const { data: user, error: insertError } = await supabase
       .from('users')
       .insert({ name, email, password: hash, role: 'USER' })
-      .select('id,email,name,role')
+      .select('id,email,name,role,avatar_url')
       .single();
     if (insertError || !user) {
       return redirectWithError('Registration failed, please try again');
@@ -109,7 +111,13 @@ export async function POST(req: NextRequest) {
       console.warn('Failed to create cart for user', user.id, err);
     }
 
-    const token = signAuthToken({ id: user.id, email: user.email, name: user.name, role: user.role });
+    const token = signAuthToken({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      avatar_url: user.avatar_url,
+    });
     const destination = nextParam.startsWith('/') ? nextParam : '/';
     const redirect = NextResponse.redirect(new URL(destination, req.url));
     redirect.cookies.set(getAuthCookieName(), token, authCookieOptions);

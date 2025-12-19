@@ -6,6 +6,7 @@ export type AuthTokenPayload = {
   email: string;
   name: string;
   role: string;
+  avatar_url?: string;
 };
 
 export type AuthUser = {
@@ -13,6 +14,7 @@ export type AuthUser = {
   email: string;
   name: string;
   role: string;
+  avatar_url?: string;
 };
 
 const COOKIE_NAME = process.env.API_COOKIE_NAME || 'shoople_token';
@@ -38,7 +40,13 @@ export function getAuthCookieName() {
 
 export function signAuthToken(user: AuthUser) {
   return jwt.sign(
-    { sub: user.id, email: user.email, name: user.name, role: user.role },
+    {
+      sub: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      avatar_url: user.avatar_url,
+    },
     JWT_SECRET,
     { expiresIn: TOKEN_EXPIRES }
   );
@@ -52,6 +60,7 @@ export function verifyAuthToken(token: string): AuthUser | null {
       email: payload.email,
       name: payload.name,
       role: payload.role,
+      avatar_url: payload.avatar_url,
     };
   } catch {
     return null;

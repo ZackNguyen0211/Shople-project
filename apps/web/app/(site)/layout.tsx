@@ -4,7 +4,7 @@ import { getCurrentUser } from '../../lib/auth';
 import { getDict, getLang } from '../../lib/i18n';
 import LanguageSwitcher from './LanguageSwitcher';
 import SearchBar from './SearchBar';
-import LogoutButton from './LogoutButton';
+import UserAvatar from './UserAvatar';
 
 export default function SiteLayout({ children }: { children: ReactNode }) {
   const user = getCurrentUser();
@@ -19,8 +19,6 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
             <Link href="/shops">{t.nav.shops}</Link>
             <span className="sep">|</span>
             <Link href="/orders">{t.nav.orders}</Link>
-            <span className="sep">|</span>
-            <Link href="/account">{t.nav.account}</Link>
             {user?.role === 'SHOP' ? (
               <>
                 <span className="sep">|</span>
@@ -37,7 +35,13 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
           <div className="top-actions">
             <LanguageSwitcher value={lang} />
             {user ? (
-              <LogoutButton label={t.nav.logout} />
+              <UserAvatar
+                name={user.name}
+                avatarUrl={user.avatar_url}
+                loginLabel={t.nav.login}
+                logoutLabel={t.nav.logout}
+                accountLabel={t.nav.account}
+              />
             ) : (
               <a href="/login" className="btn-outline">
                 {t.nav.login}

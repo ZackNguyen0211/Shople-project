@@ -1,4 +1,5 @@
-"use client";
+export { default } from '../../../shop/manage/products/[id]/page';
+'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
@@ -6,7 +7,14 @@ import { getClientDict } from '../../../../../lib/i18n-client';
 import ImageUploader from '../../../../../components/ImageUploader';
 
 type Shop = { id: number; name: string };
-type Product = { id: number; title: string; price: number; description?: string | null; shopId: number; images?: { url: string; sortOrder: number }[] };
+type Product = {
+  id: number;
+  title: string;
+  price: number;
+  description?: string | null;
+  shopId: number;
+  images?: { url: string; sortOrder: number }[];
+};
 
 export default function EditProductPage() {
   const router = useRouter();
@@ -21,92 +29,14 @@ export default function EditProductPage() {
 
   useEffect(() => {
     async function load() {
-      const [pRes, sRes] = await Promise.all([
-        fetch(`/api/products/${id}`),
-        fetch(`/api/shops`),
-      ]);
+      const [pRes, sRes] = await Promise.all([fetch(`/api/products/${id}`), fetch(`/api/shops`)]);
       if (pRes.ok) {
         const data = (await pRes.json()) as Product;
         setProduct(data);
-        const sorted = (data.images || []).sort((a, b) => a.sortOrder - b.sortOrder).map((i) => i.url);
+        const sorted = (data.images || [])
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .map((i) => i.url);
         setImages(sorted);
       }
-      if (sRes.ok) setShops(await sRes.json());
+      export { default } from '../../shop/manage/products/[id]/page';
       setLoading(false);
-    }
-    if (Number.isFinite(id)) load();
-  }, [id]);
-
-  async function save(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const payload = {
-      title: String(fd.get('title') || ''),
-      price: Number(fd.get('price') || 0),
-      description: String(fd.get('description') || ''),
-      shopId: Number(fd.get('shopId') || 0),
-      imageUrls: images,
-    };
-    const res = await fetch(`/api/products/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    if (res.ok) {
-      setMsg(t.messages.saved);
-      setTimeout(() => setMsg(null), 1000);
-    } else {
-      setMsg(t.messages.failed);
-      setTimeout(() => setMsg(null), 1000);
-    }
-  }
-
-  async function remove() {
-    if (!confirm(t.messages.deleteConfirm)) return;
-    const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
-    if (res.ok) router.push('/admin/products');
-  }
-
-  if (loading || !product) {
-    return (
-      <div className="card" style={{ maxWidth: 720 }}>
-        <h1 className="page-title">{t.adminButtons.edit} Product</h1>
-        <p className="muted">{t.home.loading}</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="card" style={{ maxWidth: 720 }}>
-      <h1 className="page-title">{t.adminButtons.edit} Product #{product.id}</h1>
-      <form onSubmit={save} style={{ display: 'grid', gap: 12 }}>
-        <label style={{ display: 'grid', gap: 4 }}>
-          <span>{t.forms.title}</span>
-          <input className="input" name="title" defaultValue={product.title} required />
-        </label>
-        <ImageUploader label="Images" initialUrls={images} onChange={setImages} />
-        <label style={{ display: 'grid', gap: 4 }}>
-          <span>{t.forms.price}</span>
-          <input className="input" name="price" type="number" min={0} step={1} defaultValue={product.price} required />
-        </label>
-        <label style={{ display: 'grid', gap: 4 }}>
-          <span>{t.forms.description}</span>
-          <textarea className="input" name="description" defaultValue={product.description || ''} />
-        </label>
-        <label style={{ display: 'grid', gap: 4 }}>
-          <span>{t.forms.shop}</span>
-          <select className="input" name="shopId" defaultValue={product.shopId}>
-            {shops.map((s) => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-          </select>
-        </label>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button className="btn" type="submit">{t.adminButtons.save}</button>
-          <button className="btn-outline" type="button" onClick={remove}>{t.adminButtons.delete}</button>
-          {msg ? <span className="muted" style={{ fontSize: 12 }}>{msg}</span> : null}
-        </div>
-      </form>
-    </div>
-  );
-}
