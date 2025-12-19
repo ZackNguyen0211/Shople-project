@@ -1,12 +1,17 @@
 import Link from 'next/link';
 import type { Route } from 'next';
 
-import { prisma } from '../../../lib/prisma';
 import type { Shop } from '../../../lib/types';
 import { getDict, getLang } from '../../../lib/i18n';
+import { getDb, mapShop } from '../../../lib/db';
 
 export default async function ShopsPage() {
-  const shops: Shop[] = await prisma.shop.findMany({ orderBy: { id: 'asc' } });
+  const supabase = getDb();
+  const { data, error } = await supabase.from('shops').select('id,name').order('id', { ascending: true });
+  if (error) {
+    throw new Error('Failed to load shops');
+  }
+  const shops: Shop[] = (data || []).map(mapShop);
 
   const t = getDict(getLang());
   return (

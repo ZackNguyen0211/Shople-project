@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -6,10 +6,17 @@ import ImageUploader from '../../../../components/ImageUploader';
 
 type Shop = { id: number; name: string };
 
-export default function NewProductForm({ shops, lang = 'vi' }: { shops: Shop[]; lang?: 'vi' | 'en' }) {
+export default function NewProductForm({
+  shops,
+  lang = 'vi',
+}: {
+  shops: Shop[];
+  lang?: 'vi' | 'en';
+}) {
   const router = useRouter();
   const [msg, setMsg] = useState<string | null>(null);
   const [images, setImages] = useState<string[]>([]);
+  const defaultShopId = shops.length === 1 ? shops[0].id : shops[0]?.id || 0;
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -17,9 +24,13 @@ export default function NewProductForm({ shops, lang = 'vi' }: { shops: Shop[]; 
     const title = String(fd.get('title') || '').trim();
     const price = Number(fd.get('price') || 0);
     const description = String(fd.get('description') || '');
-    const shopId = Number(fd.get('shopId') || 0);
+    const shopId = shops.length === 1 ? defaultShopId : Number(fd.get('shopId') || 0);
     if (!title || !Number.isFinite(price) || !Number.isFinite(shopId)) {
-      setMsg(lang === 'en' ? 'Please fill all required fields' : 'Vui lòng điền đầy đủ các trường bắt buộc');
+      setMsg(
+        lang === 'en'
+          ? 'Please fill all required fields'
+          : 'Vui lòng điền đầy đủ các trường bắt buộc'
+      );
       return;
     }
     const res = await fetch(`/api/shops/${shopId}/products`, {
@@ -42,7 +53,17 @@ export default function NewProductForm({ shops, lang = 'vi' }: { shops: Shop[]; 
   return (
     <form onSubmit={onSubmit} style={{ display: 'grid', gap: 12 }}>
       {msg ? (
-        <p className="muted" style={{ color: msg.includes('success') || msg.includes('created') || msg.includes('thành công') ? '#166534' : '#b91c1c' }}>{msg}</p>
+        <p
+          className="muted"
+          style={{
+            color:
+              msg.includes('success') || msg.includes('created') || msg.includes('thành công')
+                ? '#166534'
+                : '#b91c1c',
+          }}
+        >
+          {msg}
+        </p>
       ) : null}
       <label style={{ display: 'grid', gap: 4 }}>
         <span>{lang === 'en' ? 'Title' : 'Tiêu đề'}</span>
@@ -56,20 +77,33 @@ export default function NewProductForm({ shops, lang = 'vi' }: { shops: Shop[]; 
         <span>{lang === 'en' ? 'Description' : 'Mô tả'}</span>
         <textarea className="input" name="description" />
       </label>
-      <ImageUploader label={lang === 'en' ? 'Images' : 'Ảnh sản phẩm'} initialUrls={[]} onChange={setImages} />
-      <label style={{ display: 'grid', gap: 4 }}>
-        <span>{lang === 'en' ? 'Select Shop' : 'Chọn Shop'}</span>
-        <select className="input" name="shopId" required>
-          <option value="">{lang === 'en' ? '-- Select shop --' : '-- Chọn shop --'}</option>
-          {shops.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      <ImageUploader
+        label={lang === 'en' ? 'Images' : 'Ảnh sản phẩm'}
+        initialUrls={[]}
+        onChange={setImages}
+      />
+      {shops.length > 1 && (
+        <label style={{ display: 'grid', gap: 4 }}>
+          <span>{lang === 'en' ? 'Select Shop' : 'Chọn Shop'}</span>
+          <select className="input" name="shopId" defaultValue={defaultShopId} required>
+            {shops.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      {shops.length === 1 && (
+        <div style={{ padding: '12px 14px', background: '#f1f5f9', borderRadius: 8, fontSize: 14 }}>
+          <span style={{ fontWeight: 500 }}>{lang === 'en' ? 'Shop: ' : 'Shop: '}</span>
+          <span>{shops[0].name}</span>
+        </div>
+      )}
       <div style={{ display: 'flex', gap: 8 }}>
-        <button className="btn" type="submit">{lang === 'en' ? 'Add product' : 'Thêm sản phẩm'}</button>
+        <button className="btn" type="submit">
+          {lang === 'en' ? 'Add product' : 'Thêm sản phẩm'}
+        </button>
       </div>
     </form>
   );

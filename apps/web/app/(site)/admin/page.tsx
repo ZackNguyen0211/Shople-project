@@ -3,9 +3,9 @@ import type { Route } from 'next';
 import { redirect } from 'next/navigation';
 
 import { getCurrentUser } from '../../../lib/auth';
-import { prisma } from '../../../lib/prisma';
 import { formatVND, statusLabel } from '../../../lib/format';
 import { getDict, getLang } from '../../../lib/i18n';
+import { getDb, mapOrderItem } from '../../../lib/db';
 
 export default async function AdminPage() {
   const user = getCurrentUser();
@@ -13,15 +13,38 @@ export default async function AdminPage() {
     redirect('/');
   }
 
-  const [usersCount, shopsCount, productsCount, orders, revenueAgg] = await Promise.all([
-    prisma.user.count(),
-    prisma.shop.count(),
-    prisma.product.count(),
-    prisma.order.findMany({ take: 5, orderBy: { createdAt: 'desc' }, include: { items: true } }),
-    prisma.order.aggregate({ _sum: { totalCents: true }, where: { status: 'PAID' } }),
+  const supabase = getDb();
+  const [
+    usersCountRes,
+    shopsCountRes,
+    productsCountRes,
+    ordersRes,
+    revenueRes,
+  ] = await Promise.all([
+    supabase.from('users').select('id', { count: 'exact', head: true }),
+    supabase.from('shops').select('id', { count: 'exact', head: true }),
+    supabase.from('products').select('id', { count: 'exact', head: true }),
+    supabase
+      .from('orders')
+      .select('id,status,created_at,items:order_items(id,product_id,price,quantity)')
+      .order('created_at', { ascending: false })
+      .range(0, 4),
+    supabase.from('orders').select('total_cents').eq('status', 'PAID'),
   ]);
 
-  const revenueVnd = revenueAgg._sum.totalCents || 0;
+  const usersCount = usersCountRes.count || 0;
+  const shopsCount = shopsCountRes.count || 0;
+  const productsCount = productsCountRes.count || 0;
+  const orders = (ordersRes.data || []).map((row) => ({
+    id: row.id,
+    status: row.status,
+    items: (row.items || []).map(mapOrderItem),
+  }));
+  const revenueVnd = (revenueRes.data || []).reduce(
+    (sum, row) => sum + (row.total_cents || 0),
+    0
+  );
+
   const lang = getLang();
   const t = getDict(lang);
 

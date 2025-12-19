@@ -1,20 +1,36 @@
 import Link from 'next/link';
 import type { Route } from 'next';
 import type { Product, Shop } from '../../../lib/types';
-import { prisma } from '../../../lib/prisma';
 import { formatVND } from '../../../lib/format';
 import { getDict, getLang } from '../../../lib/i18n';
+import { getDb, mapProduct, mapShop } from '../../../lib/db';
 
 export default async function SearchPage({ searchParams }: { searchParams: { q?: string } }) {
   const q = searchParams.q?.trim() ?? '';
-  const products: Product[] = await prisma.product.findMany({
-    where: q ? { title: { contains: q } } : undefined,
-    take: 50,
-    orderBy: { id: 'desc' },
-  });
+  const supabase = getDb();
+  let productQuery = supabase
+    .from('products')
+    .select('id,title,description,price,image_url,shop_id')
+    .order('id', { ascending: false })
+    .range(0, 49);
+  if (q) {
+    productQuery = productQuery.ilike('title', `%${q}%`);
+  }
+  const { data: productRows, error: productError } = await productQuery;
+  if (productError) {
+    throw new Error('Failed to load products');
+  }
+  const products: Product[] = (productRows || []).map(mapProduct);
   const shopIds = Array.from(new Set(products.map((p) => p.shopId).filter(Boolean))) as number[];
   const shops: Shop[] = shopIds.length
-    ? await prisma.shop.findMany({ where: { id: { in: shopIds } } })
+    ? (
+        (
+          await supabase
+            .from('shops')
+            .select('id,name')
+            .in('id', shopIds)
+        ).data || []
+      ).map(mapShop)
     : [];
   const shopMap = new Map(shops.map((s) => [s.id, s.name]));
 

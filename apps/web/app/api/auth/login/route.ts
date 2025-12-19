@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { authCookieOptions, getAuthCookieName, signAuthToken } from '../../../../lib/auth';
-import { prisma } from '../../../../lib/prisma';
+import { getDb } from '../../../../lib/db';
 import { isRateLimited } from '../../../../lib/rate-limit';
 
 export async function POST(req: NextRequest) {
@@ -26,12 +26,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const supabase = getDb();
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id,email,name,role,password')
+      .eq('email', email)
+      .maybeSingle();
     const invalidUrl = new URL('/login', req.url);
     invalidUrl.searchParams.set('error', 'Invalid credentials');
     if (nextParam) invalidUrl.searchParams.set('next', nextParam);
 
-    if (!user) {
+    if (error || !user) {
       return NextResponse.redirect(invalidUrl);
     }
 

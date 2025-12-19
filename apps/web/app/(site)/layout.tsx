@@ -4,6 +4,7 @@ import { getCurrentUser } from '../../lib/auth';
 import { getDict, getLang } from '../../lib/i18n';
 import LanguageSwitcher from './LanguageSwitcher';
 import SearchBar from './SearchBar';
+import LogoutButton from './LogoutButton';
 
 export default function SiteLayout({ children }: { children: ReactNode }) {
   const user = getCurrentUser();
@@ -35,25 +36,29 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
           </nav>
           <div className="top-actions">
             <LanguageSwitcher value={lang} />
-            <form action="/api/auth/logout" method="post">
-              <button className="btn-outline" type="submit">
-                {t.nav.logout}
-              </button>
-            </form>
+            {user ? (
+              <LogoutButton label={t.nav.logout} />
+            ) : (
+              <a href="/login" className="btn-outline">
+                {t.nav.login}
+              </a>
+            )}
           </div>
         </div>
         {/* Main row: logo | search | actions */}
         <div className="container header-main">
-          <Link className="logo" href="/">{t.appName}</Link>
+          <Link className="logo" href="/">
+            {t.appName}
+          </Link>
           <div className="main-search">
             <SearchBar placeholder={t.search.placeholder} buttonLabel={t.search.button} />
           </div>
           <div className="header-actions">
             <Link href="/cart" className="iconbtn" aria-label={t.nav.cart}>
               <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true">
-                <path d="M3 3h2l2 12h10l2-8H6" stroke="currentColor" strokeWidth="1.6"/>
-                <circle cx="9" cy="20" r="1.6" fill="currentColor"/>
-                <circle cx="17" cy="20" r="1.6" fill="currentColor"/>
+                <path d="M3 3h2l2 12h10l2-8H6" stroke="currentColor" strokeWidth="1.6" />
+                <circle cx="9" cy="20" r="1.6" fill="currentColor" />
+                <circle cx="17" cy="20" r="1.6" fill="currentColor" />
               </svg>
             </Link>
           </div>

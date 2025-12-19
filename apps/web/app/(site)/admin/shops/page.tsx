@@ -2,8 +2,8 @@ import Link from 'next/link';
 import type { Route } from 'next';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '../../../../lib/auth';
-import { prisma } from '../../../../lib/prisma';
 import { getDict, getLang } from '../../../../lib/i18n';
+import { getDb } from '../../../../lib/db';
 
 export default async function AdminShopsPage({ searchParams }: { searchParams: { page?: string } }) {
   const user = getCurrentUser();
@@ -13,16 +13,22 @@ export default async function AdminShopsPage({ searchParams }: { searchParams: {
   const pageSize = 20;
   const skip = (page - 1) * pageSize;
 
-  const [shops, total] = await Promise.all([
-    prisma.shop.findMany({
-      orderBy: { id: 'asc' },
-      include: { owner: { select: { id: true, name: true, email: true } }, _count: { select: { products: true } } },
-      skip,
-      take: pageSize,
-    }),
-    prisma.shop.count(),
+  const supabase = getDb();
+  const [shopsRes, totalRes] = await Promise.all([
+    supabase
+      .from('shops')
+      .select('id,name,owner:users(id,name,email),products:products(id)')
+      .order('id', { ascending: true })
+      .range(skip, skip + pageSize - 1),
+    supabase.from('shops').select('id', { count: 'exact', head: true }),
   ]);
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const shops = (shopsRes.data || []).map((row) => ({
+    id: row.id,
+    name: row.name,
+    owner: row.owner,
+    _count: { products: row.products ? row.products.length : 0 },
+  }));
+  const totalPages = Math.max(1, Math.ceil((totalRes.count || 0) / pageSize));
 
   const t = getDict(getLang());
   return (

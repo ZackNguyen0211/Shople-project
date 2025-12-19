@@ -2,10 +2,10 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import type { Route } from 'next';
 import { getCurrentUser } from '../../../../lib/auth';
-import { prisma } from '../../../../lib/prisma';
 import { formatVND, statusLabel } from '../../../../lib/format';
 import { getDict, getLang } from '../../../../lib/i18n';
 import StatusSelect from './StatusSelect';
+import { getDb, mapOrderItem } from '../../../../lib/db';
 
 export default async function AdminOrdersPage({ searchParams }: { searchParams: { status?: string; page?: string; sort?: string } }) {
   const user = getCurrentUser();
@@ -17,21 +17,31 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
   const pageSize = 20;
   const skip = (page - 1) * pageSize;
 
-  const where = status ? { status } : {};
   const lang = getLang();
   const t = getDict(lang);
-  const [orders, total] = await Promise.all([
-    prisma.order.findMany({
-      where,
-      orderBy: { createdAt: sort },
-      skip,
-      take: pageSize,
-      include: { items: true, user: { select: { id: true, email: true } }, shop: { select: { id: true, name: true } } },
-    }),
-    prisma.order.count({ where }),
+  const supabase = getDb();
+  let ordersQuery = supabase
+    .from('orders')
+    .select('id,status,created_at,items:order_items(id,product_id,price,quantity),user:users(id,email),shop:shops(id,name)')
+    .order('created_at', { ascending: sort === 'asc' });
+  let countQuery = supabase.from('orders').select('id', { count: 'exact', head: true });
+  if (status) {
+    ordersQuery = ordersQuery.eq('status', status);
+    countQuery = countQuery.eq('status', status);
+  }
+  const [ordersRes, totalRes] = await Promise.all([
+    ordersQuery.range(skip, skip + pageSize - 1),
+    countQuery,
   ]);
+  const orders = (ordersRes.data || []).map((row) => ({
+    id: row.id,
+    status: row.status,
+    user: row.user,
+    shop: row.shop,
+    items: (row.items || []).map(mapOrderItem),
+  }));
 
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const totalPages = Math.max(1, Math.ceil((totalRes.count || 0) / pageSize));
 
   return (
     <div className="card" style={{ maxWidth: 1100 }}>

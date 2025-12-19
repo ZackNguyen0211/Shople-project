@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -22,7 +23,6 @@ export default function ImageUploader({
   const skipNextOnChange = useRef(false);
 
   useEffect(() => {
-    // When parent updates initialUrls (e.g., after fetch), sync items but skip triggering onChange to avoid loops.
     skipNextOnChange.current = true;
     setItems(initialUrls.map((url) => ({ url })));
   }, [initialUrls]);

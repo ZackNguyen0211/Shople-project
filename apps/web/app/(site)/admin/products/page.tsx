@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { formatVND } from '../../../../lib/format';
 import { getDict, getLang } from '../../../../lib/i18n';
 import { getCurrentUser } from '../../../../lib/auth';
-import { prisma } from '../../../../lib/prisma';
+import { getDb, mapProduct } from '../../../../lib/db';
 
 export default async function AdminProductsPage({ searchParams }: { searchParams: { page?: string } }) {
   const user = getCurrentUser();
@@ -14,16 +14,20 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
   const pageSize = 20;
   const skip = (page - 1) * pageSize;
 
-  const [products, total] = await Promise.all([
-    prisma.product.findMany({
-      orderBy: { id: 'asc' },
-      include: { shop: { select: { id: true, name: true } } },
-      skip,
-      take: pageSize,
-    }),
-    prisma.product.count(),
+  const supabase = getDb();
+  const [productsRes, totalRes] = await Promise.all([
+    supabase
+      .from('products')
+      .select('id,title,description,price,image_url,shop_id,shop:shops(id,name)')
+      .order('id', { ascending: true })
+      .range(skip, skip + pageSize - 1),
+    supabase.from('products').select('id', { count: 'exact', head: true }),
   ]);
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const products = (productsRes.data || []).map((row) => ({
+    ...mapProduct(row),
+    shop: row.shop || null,
+  }));
+  const totalPages = Math.max(1, Math.ceil((totalRes.count || 0) / pageSize));
 
   const t = getDict(getLang());
   return (

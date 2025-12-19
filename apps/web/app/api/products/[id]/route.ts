@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { prisma } from '../../../../lib/prisma';
 import { getAuthCookieName, verifyAuthToken } from '../../../../lib/auth';
-import type { Prisma } from '@prisma/client';
+import { getDb, mapProduct, mapProductImage } from '../../../../lib/db';
 
 type Params = { params: { id: string } };
 
@@ -11,20 +10,28 @@ export async function GET(_req: NextRequest, { params }: Params) {
   if (Number.isNaN(id)) {
     return NextResponse.json({ error: 'Invalid product id' }, { status: 400 });
   }
-  const product = await prisma.product.findUnique({
-    where: { id },
-    include: { shop: { select: { ownerId: true } } },
-  });
-  if (!product) {
+  const supabase = getDb();
+  const { data: product, error } = await supabase
+    .from('products')
+    .select('id,title,description,price,image_url,shop_id,shop:shops(owner_id)')
+    .eq('id', id)
+    .maybeSingle();
+  if (error || !product) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
-  type ProductImageRow = { url: string; sortOrder: number };
-  type ProductImageClient = {
-    findMany: (args: { where: { productId: number }; orderBy: { sortOrder: 'asc' | 'desc' } }) => Promise<ProductImageRow[]>;
-  };
-  const productImage = (prisma as unknown as { productImage: ProductImageClient }).productImage;
-  const images = await productImage.findMany({ where: { productId: id }, orderBy: { sortOrder: 'asc' } });
-  return NextResponse.json({ ...product, images });
+  const { data: images, error: imagesError } = await supabase
+    .from('product_images')
+    .select('url,sort_order')
+    .eq('product_id', id)
+    .order('sort_order', { ascending: true });
+  if (imagesError) {
+    return NextResponse.json({ error: 'Failed to load images' }, { status: 500 });
+  }
+  return NextResponse.json({
+    ...mapProduct(product),
+    shop: product.shop ? { ownerId: product.shop.owner_id } : null,
+    images: (images || []).map(mapProductImage),
+  });
 }
 
 export async function PATCH(req: NextRequest, { params }: Params) {
@@ -34,9 +41,15 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const current = token ? verifyAuthToken(token) : null;
 
   if (!current) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const supabase = getDb();
   if (current.role !== 'ADMIN') {
-    const prod = await prisma.product.findUnique({ where: { id }, select: { shop: { select: { ownerId: true } } } });
-    if (!prod || prod.shop.ownerId !== current.id) {
+    const { data: prod, error: prodError } = await supabase
+      .from('products')
+      .select('id,shop:shops(owner_id)')
+      .eq('id', id)
+      .maybeSingle();
+    if (prodError || !prod || prod.shop?.owner_id !== current.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
   }
@@ -56,21 +69,47 @@ export async function PATCH(req: NextRequest, { params }: Params) {
           .filter(Boolean)
       : [];
 
-  const data: Prisma.ProductUpdateInput = {};
-  if (title) data.title = title;
-  if (description !== undefined) data.description = description;
-  if (Number.isFinite(price)) data.price = price as number;
-  if (Number.isFinite(shopId)) data.shop = { connect: { id: shopId as number } };
+  const updates: Record<string, unknown> = {};
+  if (title) updates.title = title;
+  if (description !== undefined) updates.description = description;
+  if (Number.isFinite(price)) updates.price = price as number;
+  // Note: shopId cannot be changed to prevent moving products between shops
   if (hasImageUrls) {
-    data.imageUrl = imageUrls[0] || null;
-    data.images = {
-      deleteMany: {},
-      ...(imageUrls.length ? { create: imageUrls.map((url: string, i: number) => ({ url, sortOrder: i })) } : {}),
-    };
+    updates.image_url = imageUrls[0] || null;
   }
 
-  const updated = await prisma.product.update({ where: { id }, data });
-  return NextResponse.json(updated);
+  const { data: updated, error: updateError } = await supabase
+    .from('products')
+    .update(updates)
+    .eq('id', id)
+    .select('id,title,description,price,image_url,shop_id')
+    .single();
+  if (updateError || !updated) {
+    return NextResponse.json({ error: 'Failed to update product' }, { status: 500 });
+  }
+
+  if (hasImageUrls) {
+    const { error: deleteError } = await supabase
+      .from('product_images')
+      .delete()
+      .eq('product_id', id);
+    if (deleteError) {
+      return NextResponse.json({ error: 'Failed to update images' }, { status: 500 });
+    }
+    if (imageUrls.length) {
+      const rows = imageUrls.map((url: string, i: number) => ({
+        product_id: id,
+        url,
+        sort_order: i,
+      }));
+      const { error: insertError } = await supabase.from('product_images').insert(rows);
+      if (insertError) {
+        return NextResponse.json({ error: 'Failed to update images' }, { status: 500 });
+      }
+    }
+  }
+
+  return NextResponse.json(mapProduct(updated));
 }
 
 export async function DELETE(req: NextRequest, { params }: Params) {
@@ -80,13 +119,22 @@ export async function DELETE(req: NextRequest, { params }: Params) {
   const current = token ? verifyAuthToken(token) : null;
 
   if (!current) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const supabase = getDb();
   if (current.role !== 'ADMIN') {
-    const prod = await prisma.product.findUnique({ where: { id }, select: { shop: { select: { ownerId: true } } } });
-    if (!prod || prod.shop.ownerId !== current.id) {
+    const { data: prod, error: prodError } = await supabase
+      .from('products')
+      .select('id,shop:shops(owner_id)')
+      .eq('id', id)
+      .maybeSingle();
+    if (prodError || !prod || prod.shop?.owner_id !== current.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
   }
 
-  await prisma.product.delete({ where: { id } });
+  const { error } = await supabase.from('products').delete().eq('id', id);
+  if (error) {
+    return NextResponse.json({ error: 'Failed to delete product' }, { status: 500 });
+  }
   return NextResponse.json({ ok: true });
 }

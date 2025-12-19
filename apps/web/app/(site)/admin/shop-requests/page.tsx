@@ -1,13 +1,28 @@
 import Link from 'next/link';
 import type { Route } from 'next';
 import { redirect } from 'next/navigation';
-import { prisma } from '../../../../../lib/prisma';
 import { getCurrentUser } from '../../../../../lib/auth';
+import { getDb } from '../../../../../lib/db';
 
 export default async function AdminShopRequestsPage() {
   const user = getCurrentUser();
   if (!user || user.role !== 'ADMIN') redirect('/');
-  const items = await prisma.shopRequest.findMany({ orderBy: { createdAt: 'desc' } });
+  const supabase = getDb();
+  const { data, error } = await supabase
+    .from('shop_requests')
+    .select('id,shop_name,shop_owner_email,requester_id,status,created_at')
+    .order('created_at', { ascending: false });
+  if (error) {
+    throw new Error('Failed to load requests');
+  }
+  const items = (data || []).map((row) => ({
+    id: row.id,
+    shopName: row.shop_name,
+    shopOwnerEmail: row.shop_owner_email,
+    requesterId: row.requester_id,
+    status: row.status,
+    createdAt: row.created_at,
+  }));
   return (
     <div className="card" style={{ maxWidth: 1100 }}>
       <h1 className="page-title">Shop Requests</h1>
@@ -53,4 +68,3 @@ export default async function AdminShopRequestsPage() {
     </div>
   );
 }
-

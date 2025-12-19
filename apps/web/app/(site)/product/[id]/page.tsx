@@ -6,7 +6,7 @@ import ProductActions from './ProductActions';
 import ProductGallery from './ProductGallery';
 import { notFound } from 'next/navigation';
 
-import { prisma } from '../../../../lib/prisma';
+import { getDb, mapProduct, mapProductImage, mapShop } from '../../../../lib/db';
 
 type Params = { params: { id: string } };
 
@@ -15,22 +15,34 @@ export default async function ProductPage({ params }: Params) {
   if (Number.isNaN(id)) {
     notFound();
   }
-  const product = await prisma.product.findUnique({ where: { id } });
-  if (!product) {
+  const supabase = getDb();
+  const { data: productRow, error: productError } = await supabase
+    .from('products')
+    .select('id,title,description,price,image_url,shop_id')
+    .eq('id', id)
+    .maybeSingle();
+  if (productError || !productRow) {
     notFound();
   }
-  const shop = product.shopId
-    ? await prisma.shop.findUnique({ where: { id: product.shopId } })
+  const product = mapProduct(productRow);
+  const shopRow = product.shopId
+    ? (
+        await supabase
+          .from('shops')
+          .select('id,name')
+          .eq('id', product.shopId)
+          .maybeSingle()
+      ).data
     : null;
+  const shop = shopRow ? mapShop(shopRow) : null;
   const t = getDict(getLang());
-  type ProductImageRow = { url: string; sortOrder: number };
-  type ProductImageClient = {
-    findMany: (args: { where: { productId: number }; orderBy: { sortOrder: 'asc' | 'desc' } }) => Promise<ProductImageRow[]>;
-  };
-  const productImage = (prisma as unknown as { productImage: ProductImageClient }).productImage;
-  const imageRows = await productImage.findMany({ where: { productId: id }, orderBy: { sortOrder: 'asc' } });
+  const { data: imageRows } = await supabase
+    .from('product_images')
+    .select('url,sort_order')
+    .eq('product_id', id)
+    .order('sort_order', { ascending: true });
   const images = (Array.isArray(imageRows) && imageRows.length > 0)
-    ? imageRows.map((im: ProductImageRow) => im.url)
+    ? imageRows.map((im) => mapProductImage(im).url)
     : [product?.imageUrl || '/placeholder-product.png'];
 
   return (

@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
-import { prisma } from '../../../../lib/prisma';
 import { formatVND, statusLabel } from '../../../../lib/format';
 import { getDict, getLang } from '../../../../lib/i18n';
+import { getDb, mapOrderItem } from '../../../../lib/db';
 
 type Params = { params: { id: string } };
 
@@ -9,8 +9,14 @@ export default async function OrderPage({ params }: Params) {
   const id = Number(params.id);
   if (Number.isNaN(id)) notFound();
 
-  const order = await prisma.order.findUnique({ where: { id }, include: { items: true } });
-  if (!order) notFound();
+  const supabase = getDb();
+  const { data: order, error } = await supabase
+    .from('orders')
+    .select('id,status,items:order_items(id,product_id,price,quantity)')
+    .eq('id', id)
+    .maybeSingle();
+  if (error || !order) notFound();
+  const items = (order.items || []).map(mapOrderItem);
   const t = getDict(getLang());
 
   return (
@@ -26,7 +32,7 @@ export default async function OrderPage({ params }: Params) {
           </tr>
         </thead>
         <tbody>
-          {order.items.map((item) => (
+          {items.map((item) => (
             <tr key={item.id}>
               <td>{item.productId}</td>
               <td>{item.quantity}</td>

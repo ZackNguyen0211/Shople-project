@@ -4,7 +4,7 @@ import { formatVND } from '../../../../lib/format';
 import { notFound } from 'next/navigation';
 
 import type { Product, Shop } from '../../../../lib/types';
-import { prisma } from '../../../../lib/prisma';
+import { getDb, mapProduct, mapShop } from '../../../../lib/db';
 
 type Params = { params: { id: string } };
 
@@ -14,10 +14,13 @@ export default async function ShopPage({ params }: Params) {
     notFound();
   }
 
-  const [shop, products] = await Promise.all([
-    prisma.shop.findUnique({ where: { id } }) as Promise<Shop | null>,
-    prisma.product.findMany({ where: { shopId: id } }) as Promise<Product[]>,
+  const supabase = getDb();
+  const [shopRes, productsRes] = await Promise.all([
+    supabase.from('shops').select('id,name').eq('id', id).maybeSingle(),
+    supabase.from('products').select('id,title,description,price,image_url,shop_id').eq('shop_id', id),
   ]);
+  const shop = shopRes.data ? (mapShop(shopRes.data) as Shop) : null;
+  const products = (productsRes.data || []).map(mapProduct) as Product[];
 
   if (!shop) {
     notFound();

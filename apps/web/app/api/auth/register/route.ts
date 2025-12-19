@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { authCookieOptions, getAuthCookieName, signAuthToken } from '../../../../lib/auth';
-import { prisma } from '../../../../lib/prisma';
+import { getDb } from '../../../../lib/db';
 
 // Simple in-memory rate limiter per IP
 const attempts = new Map<string, number[]>();
@@ -76,7 +76,15 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const existing = await prisma.user.findUnique({ where: { email } });
+    const supabase = getDb();
+    const { data: existing, error: existingError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle();
+    if (existingError) {
+      return redirectWithError('Registration failed, please try again');
+    }
     if (existing) {
       // Return a generic error to avoid email enumeration.
       return redirectWithError('Registration failed, please try again');
@@ -84,13 +92,18 @@ export async function POST(req: NextRequest) {
 
     const hash = await bcrypt.hash(password, 10);
 
-    const user = await prisma.user.create({
-      data: { name, email, password: hash, role: 'USER' },
-    });
+    const { data: user, error: insertError } = await supabase
+      .from('users')
+      .insert({ name, email, password: hash, role: 'USER' })
+      .select('id,email,name,role')
+      .single();
+    if (insertError || !user) {
+      return redirectWithError('Registration failed, please try again');
+    }
 
     // Create empty cart for the new user (ignore if it already exists)
     try {
-      await prisma.cart.create({ data: { userId: user.id } });
+      await supabase.from('carts').insert({ user_id: user.id });
     } catch (err) {
       // ignore errors creating cart (e.g., already exists) but log for diagnostics
       console.warn('Failed to create cart for user', user.id, err);

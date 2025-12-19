@@ -2,8 +2,8 @@ import Link from 'next/link';
 import type { Route } from 'next';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '../../../../lib/auth';
-import { prisma } from '../../../../lib/prisma';
 import { getDict, getLang } from '../../../../lib/i18n';
+import { getDb, mapUser } from '../../../../lib/db';
 
 export default async function AdminUsersPage({ searchParams }: { searchParams: { page?: string } }) {
   const user = getCurrentUser();
@@ -13,16 +13,17 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: {
   const pageSize = 20;
   const skip = (page - 1) * pageSize;
 
-  const [users, total] = await Promise.all([
-    prisma.user.findMany({
-      skip,
-      take: pageSize,
-      orderBy: { id: 'asc' },
-      select: { id: true, email: true, name: true, role: true, createdAt: true },
-    }),
-    prisma.user.count(),
+  const supabase = getDb();
+  const [usersRes, totalRes] = await Promise.all([
+    supabase
+      .from('users')
+      .select('id,email,name,role,created_at')
+      .order('id', { ascending: true })
+      .range(skip, skip + pageSize - 1),
+    supabase.from('users').select('id', { count: 'exact', head: true }),
   ]);
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const users = (usersRes.data || []).map(mapUser);
+  const totalPages = Math.max(1, Math.ceil((totalRes.count || 0) / pageSize));
 
   const t = getDict(getLang());
   return (
@@ -45,7 +46,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: {
               <td>{u.name}</td>
               <td>{u.email}</td>
               <td>{u.role}</td>
-              <td>{new Date(u.createdAt).toLocaleDateString()}</td>
+              <td>{u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '-'}</td>
             </tr>
           ))}
         </tbody>

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { prisma } from '../../../lib/prisma';
-import type { Prisma } from '@prisma/client';
+import { getDb, mapProduct } from '../../../lib/db';
 import { getAuthCookieName, verifyAuthToken } from '../../../lib/auth';
 
 export async function GET(req: NextRequest) {
@@ -14,18 +13,28 @@ export async function GET(req: NextRequest) {
   const skip = Number.isNaN(skipParam) ? 0 : Math.max(0, skipParam);
   const take = Number.isNaN(takeParam) ? 50 : Math.max(1, Math.min(200, takeParam));
 
-  const where = q ? { title: { contains: q } } : undefined;
-
-  const [items, total] = await Promise.all([
-    prisma.product.findMany({
-      where,
-      skip,
-      take,
-      orderBy: { id: 'desc' },
-      include: { shop: { select: { id: true, name: true } } },
-    }),
-    includeTotal ? prisma.product.count({ where }) : Promise.resolve(0),
-  ]);
+  const supabase = getDb();
+  const rangeStart = skip;
+  const rangeEnd = skip + take - 1;
+  const selectColumns = 'id,title,description,price,image_url,shop_id,shop:shops(id,name)';
+  const selectOpts = includeTotal ? { count: 'exact' as const } : undefined;
+  let query = supabase
+    .from('products')
+    .select(selectColumns, selectOpts)
+    .order('id', { ascending: false })
+    .range(rangeStart, rangeEnd);
+  if (q) {
+    query = query.ilike('title', `%${q}%`);
+  }
+  const { data, error, count } = await query;
+  if (error) {
+    return NextResponse.json({ error: 'Failed to load products' }, { status: 500 });
+  }
+  const items = (data || []).map((row) => ({
+    ...mapProduct(row),
+    shop: row.shop ? { id: row.shop.id, name: row.shop.name } : null,
+  }));
+  const total = includeTotal ? count || 0 : 0;
 
   if (includeTotal) return NextResponse.json({ items, total });
   return NextResponse.json(items);
@@ -50,16 +59,31 @@ export async function POST(req: NextRequest) {
   if (!title || !Number.isFinite(price) || !Number.isFinite(shopId)) {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
   }
-  const data = {
-    title,
-    price,
-    shopId,
-    description,
-    imageUrl: imageUrls[0] || undefined,
-    ...(imageUrls.length
-      ? { images: { create: imageUrls.map((url: string, i: number) => ({ url, sortOrder: i })) } }
-      : {}),
-  } as unknown as Prisma.ProductUncheckedCreateInput;
-  const product = await prisma.product.create({ data });
-  return NextResponse.json(product, { status: 201 });
+  const supabase = getDb();
+  const { data: product, error } = await supabase
+    .from('products')
+    .insert({
+      title,
+      price,
+      shop_id: shopId,
+      description,
+      image_url: imageUrls[0] || null,
+    })
+    .select('id,title,description,price,image_url,shop_id')
+    .single();
+  if (error || !product) {
+    return NextResponse.json({ error: 'Failed to create product' }, { status: 500 });
+  }
+  if (imageUrls.length) {
+    const images = imageUrls.map((url: string, i: number) => ({
+      product_id: product.id,
+      url,
+      sort_order: i,
+    }));
+    const { error: imageError } = await supabase.from('product_images').insert(images);
+    if (imageError) {
+      return NextResponse.json({ error: 'Failed to attach images' }, { status: 500 });
+    }
+  }
+  return NextResponse.json(mapProduct(product), { status: 201 });
 }

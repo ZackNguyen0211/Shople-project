@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
@@ -6,7 +6,14 @@ import { getClientDict } from '../../../../../../lib/i18n-client';
 import ImageUploader from '../../../../../../components/ImageUploader';
 
 type Shop = { id: number; name: string };
-type Product = { id: number; title: string; price: number; description?: string | null; shopId: number; images?: { url: string; sortOrder: number }[] };
+type Product = {
+  id: number;
+  title: string;
+  price: number;
+  description?: string | null;
+  shopId: number;
+  images?: { url: string; sortOrder: number }[];
+};
 
 export default function ShopEditProductPage() {
   const router = useRouter();
@@ -21,14 +28,13 @@ export default function ShopEditProductPage() {
 
   useEffect(() => {
     async function load() {
-      const [pRes, sRes] = await Promise.all([
-        fetch(`/api/products/${id}`),
-        fetch(`/api/shops`),
-      ]);
+      const [pRes, sRes] = await Promise.all([fetch(`/api/products/${id}`), fetch(`/api/shops`)]);
       if (pRes.ok) {
         const data = (await pRes.json()) as Product;
         setProduct(data);
-        const sorted = (data.images || []).sort((a, b) => a.sortOrder - b.sortOrder).map((i) => i.url);
+        const sorted = (data.images || [])
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .map((i) => i.url);
         setImages(sorted);
       }
       if (sRes.ok) setShops(await sRes.json());
@@ -44,7 +50,7 @@ export default function ShopEditProductPage() {
       title: String(fd.get('title') || ''),
       price: Number(fd.get('price') || 0),
       description: String(fd.get('description') || ''),
-      shopId: Number(fd.get('shopId') || 0),
+      shopId: product.shopId,
       imageUrls: images,
     };
     const res = await fetch(`/api/products/${id}`, {
@@ -54,7 +60,12 @@ export default function ShopEditProductPage() {
     });
     if (res.ok) {
       setMsg(t.messages.saved);
-      setTimeout(() => setMsg(null), 1000);
+      const goBack = confirm('Đã lưu thành công! Bạn có muốn quay lại trang trước không?');
+      if (goBack) {
+        router.back();
+      } else {
+        setTimeout(() => setMsg(null), 1000);
+      }
     } else {
       setMsg(t.messages.failed);
       setTimeout(() => setMsg(null), 1000);
@@ -69,44 +80,164 @@ export default function ShopEditProductPage() {
 
   if (loading || !product) {
     return (
-      <div className="card" style={{ maxWidth: 720 }}>
-        <h1 className="page-title">{t.adminButtons.edit} Product</h1>
+      <div className="card" style={{ maxWidth: 720, margin: '0 auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 8,
+              background: 'var(--primary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontWeight: 'bold',
+              fontSize: 18,
+            }}
+          >
+            📦
+          </div>
+          <h1 style={{ fontSize: 24, fontWeight: 600, margin: 0 }}>
+            {t.adminButtons.edit} Product
+          </h1>
+        </div>
         <p className="muted">{t.home.loading}</p>
       </div>
     );
   }
 
   return (
-    <div className="card" style={{ maxWidth: 720 }}>
-      <h1 className="page-title">{t.adminButtons.edit} Product #{product.id}</h1>
-      <form onSubmit={save} style={{ display: 'grid', gap: 12 }}>
-        <label style={{ display: 'grid', gap: 4 }}>
-          <span>{t.forms.title}</span>
-          <input className="input" name="title" defaultValue={product.title} required />
-        </label>
-        <ImageUploader label="Images" initialUrls={images} onChange={setImages} />
-        <label style={{ display: 'grid', gap: 4 }}>
-          <span>{t.forms.price}</span>
-          <input className="input" name="price" type="number" min={0} step={1} defaultValue={product.price} required />
-        </label>
-        <label style={{ display: 'grid', gap: 4 }}>
-          <span>{t.forms.description}</span>
-          <textarea className="input" name="description" defaultValue={product.description || ''} />
-        </label>
-        <label style={{ display: 'grid', gap: 4 }}>
-          <span>{t.forms.shop}</span>
-          <select className="input" name="shopId" defaultValue={product.shopId}>
-            {shops.map((s) => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-          </select>
-        </label>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button className="btn" type="submit">{t.adminButtons.save}</button>
-          <button className="btn-outline" type="button" onClick={remove}>{t.adminButtons.delete}</button>
-          {msg ? <span className="muted" style={{ fontSize: 12 }}>{msg}</span> : null}
+    <div style={{ maxWidth: 720, margin: '0 auto' }}>
+      {/* Header */}
+      <div style={{ marginBottom: 32 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 8,
+              background: 'var(--primary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontWeight: 'bold',
+              fontSize: 18,
+            }}
+          >
+            📦
+          </div>
+          <h1 style={{ fontSize: 24, fontWeight: 600, margin: 0 }}>
+            {t.adminButtons.edit} Product #{product.id}
+          </h1>
         </div>
-      </form>
+        <p className="muted" style={{ marginLeft: 52 }}>
+          Chỉnh sửa thông tin sản phẩm của bạn
+        </p>
+      </div>
+
+      {/* Form Card */}
+      <div className="card" style={{ padding: 20 }}>
+        <form onSubmit={save} style={{ display: 'grid', gap: 20 }}>
+          {/* Title Section */}
+          <div>
+            <label style={{ display: 'grid', gap: 8 }}>
+              <span style={{ fontWeight: 600, fontSize: 14 }}>{t.forms.title}</span>
+              <input
+                className="input"
+                name="title"
+                defaultValue={product.title}
+                required
+                placeholder="Tên sản phẩm"
+                style={{ padding: '12px 14px', borderRadius: 8 }}
+              />
+            </label>
+          </div>
+
+          {/* Price Section */}
+          <div>
+            <label style={{ display: 'grid', gap: 8 }}>
+              <span style={{ fontWeight: 600, fontSize: 14 }}>{t.forms.price}</span>
+              <input
+                className="input"
+                name="price"
+                type="number"
+                min={0}
+                step={1}
+                defaultValue={product.price}
+                required
+                placeholder="0"
+                style={{ padding: '12px 14px', borderRadius: 8 }}
+              />
+            </label>
+          </div>
+
+          {/* Description Section */}
+          <div>
+            <label style={{ display: 'grid', gap: 8 }}>
+              <span style={{ fontWeight: 600, fontSize: 14 }}>{t.forms.description}</span>
+              <textarea
+                className="input"
+                name="description"
+                defaultValue={product.description || ''}
+                placeholder="Mô tả sản phẩm"
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: 8,
+                  minHeight: 120,
+                  fontFamily: 'inherit',
+                }}
+              />
+            </label>
+          </div>
+
+          {/* Images Section */}
+          <div>
+            <div style={{ marginBottom: 8 }}>
+              <span style={{ fontWeight: 600, fontSize: 14 }}>Hình ảnh</span>
+            </div>
+            <ImageUploader label="" initialUrls={images} onChange={setImages} />
+          </div>
+
+          {/* Action Buttons */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr auto auto',
+              gap: 12,
+              alignItems: 'center',
+              paddingTop: 12,
+              borderTop: '1px solid #e2e8f0',
+              marginTop: 8,
+            }}
+          >
+            {msg && (
+              <span
+                className={msg === t.messages.saved ? 'muted' : 'muted'}
+                style={{
+                  fontSize: 13,
+                  color: msg === t.messages.saved ? '#16a34a' : '#dc2626',
+                  fontWeight: 500,
+                }}
+              >
+                ✓ {msg}
+              </span>
+            )}
+            <button className="btn" type="submit" style={{ padding: '10px 24px' }}>
+              {t.adminButtons.save}
+            </button>
+            <button
+              className="btn-outline"
+              type="button"
+              onClick={remove}
+              style={{ padding: '10px 24px' }}
+            >
+              {t.adminButtons.delete}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

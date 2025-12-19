@@ -1,26 +1,33 @@
 import Link from 'next/link';
 import type { Route } from 'next';
-import { prisma } from '../../../lib/prisma';
 import { getCurrentUser } from '../../../lib/auth';
 import { formatVND, statusLabel } from '../../../lib/format';
 import { getDict, getLang } from '../../../lib/i18n';
+import { getDb, mapOrderItem } from '../../../lib/db';
+import LoginRequired from '../LoginRequired';
 
 export default async function OrdersPage() {
   const me = getCurrentUser();
   const t = getDict(getLang());
+
   if (!me) {
-    return (
-      <div className="card" style={{ maxWidth: 720 }}>
-        <h1 className="page-title">{t.orders.title}</h1>
-        <p className="muted">Không thể tải đơn hàng.</p>
-      </div>
-    );
+    return <LoginRequired message="Đăng nhập để xem lịch sử đơn hàng" />;
   }
-  const orders = await prisma.order.findMany({
-    where: { userId: me.id },
-    include: { items: true },
-    orderBy: { createdAt: 'desc' },
-  });
+
+  const supabase = getDb();
+  const { data, error } = await supabase
+    .from('orders')
+    .select('id,status,created_at,items:order_items(id,product_id,price,quantity)')
+    .eq('user_id', me.id)
+    .order('created_at', { ascending: false });
+  if (error) {
+    throw new Error('Failed to load orders');
+  }
+  const orders = (data || []).map((row) => ({
+    id: row.id,
+    status: row.status,
+    items: (row.items || []).map(mapOrderItem),
+  }));
 
   return (
     <div className="card" style={{ maxWidth: 900 }}>
@@ -44,7 +51,9 @@ export default async function OrdersPage() {
                 <tr key={o.id}>
                   <td>#{o.id}</td>
                   <td>
-                    <span className={`badge badge--${o.status.toLowerCase()}`}>{statusLabel(o.status, getLang())}</span>
+                    <span className={`badge badge--${o.status.toLowerCase()}`}>
+                      {statusLabel(o.status, getLang())}
+                    </span>
                   </td>
                   <td>{formatVND(total)}</td>
                   <td>
@@ -61,4 +70,3 @@ export default async function OrdersPage() {
     </div>
   );
 }
-

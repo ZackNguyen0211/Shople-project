@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { prisma } from '../../../../lib/prisma';
 import { getAuthCookieName, verifyAuthToken } from '../../../../lib/auth';
 import { isRateLimited } from '../../../../lib/rate-limit';
+import { getDb } from '../../../../lib/db';
 
 async function requireUser(req: NextRequest) {
   const token = req.cookies.get(getAuthCookieName())?.value;
@@ -31,29 +31,59 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
     const current = await requireUser(req);
+    const supabase = getDb();
     const { productId, quantity, json } = await parseBody(req);
     if (!productId || Number.isNaN(productId)) {
       return NextResponse.json({ error: 'Invalid product id' }, { status: 400 });
     }
     const qty = !quantity || Number.isNaN(quantity) || quantity < 1 ? 1 : quantity;
 
-    const cart = await prisma.cart.upsert({
-      where: { userId: current.id },
-      update: {},
-      create: { userId: current.id },
-    });
+    const { data: cart, error: cartError } = await supabase
+      .from('carts')
+      .select('id')
+      .eq('user_id', current.id)
+      .maybeSingle();
+    if (cartError) {
+      return NextResponse.json({ error: 'Failed to load cart' }, { status: 500 });
+    }
+    let cartId = cart?.id;
+    if (!cartId) {
+      const { data: newCart, error: newCartError } = await supabase
+        .from('carts')
+        .insert({ user_id: current.id })
+        .select('id')
+        .single();
+      if (newCartError || !newCart) {
+        return NextResponse.json({ error: 'Failed to create cart' }, { status: 500 });
+      }
+      cartId = newCart.id;
+    }
 
-    const existing = await prisma.cartItem.findFirst({
-      where: { cartId: cart.id, productId },
-    });
+    const { data: existing, error: existingError } = await supabase
+      .from('cart_items')
+      .select('id,quantity')
+      .eq('cart_id', cartId)
+      .eq('product_id', productId)
+      .maybeSingle();
+    if (existingError) {
+      return NextResponse.json({ error: 'Failed to load cart item' }, { status: 500 });
+    }
 
     if (existing) {
-      await prisma.cartItem.update({
-        where: { id: existing.id },
-        data: { quantity: existing.quantity + qty },
-      });
+      const { error: updateError } = await supabase
+        .from('cart_items')
+        .update({ quantity: existing.quantity + qty })
+        .eq('id', existing.id);
+      if (updateError) {
+        return NextResponse.json({ error: 'Failed to update cart item' }, { status: 500 });
+      }
     } else {
-      await prisma.cartItem.create({ data: { cartId: cart.id, productId, quantity: qty } });
+      const { error: insertError } = await supabase
+        .from('cart_items')
+        .insert({ cart_id: cartId, product_id: productId, quantity: qty });
+      if (insertError) {
+        return NextResponse.json({ error: 'Failed to add cart item' }, { status: 500 });
+      }
     }
 
     if (json) return NextResponse.json({ ok: true });
@@ -72,21 +102,51 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
     const current = await requireUser(req);
+    const supabase = getDb();
     const { productId, quantity } = await req.json();
     const pid = Number(productId);
     const qty = Number(quantity);
     if (!pid || Number.isNaN(pid)) return NextResponse.json({ error: 'Invalid product id' }, { status: 400 });
     if (!Number.isFinite(qty) || qty < 1) return NextResponse.json({ error: 'Invalid quantity' }, { status: 400 });
 
-    const cart = await prisma.cart.upsert({
-      where: { userId: current.id },
-      update: {},
-      create: { userId: current.id },
-    });
+    const { data: cart, error: cartError } = await supabase
+      .from('carts')
+      .select('id')
+      .eq('user_id', current.id)
+      .maybeSingle();
+    if (cartError) {
+      return NextResponse.json({ error: 'Failed to load cart' }, { status: 500 });
+    }
+    let cartId = cart?.id;
+    if (!cartId) {
+      const { data: newCart, error: newCartError } = await supabase
+        .from('carts')
+        .insert({ user_id: current.id })
+        .select('id')
+        .single();
+      if (newCartError || !newCart) {
+        return NextResponse.json({ error: 'Failed to create cart' }, { status: 500 });
+      }
+      cartId = newCart.id;
+    }
 
-    const existing = await prisma.cartItem.findFirst({ where: { cartId: cart.id, productId: pid } });
+    const { data: existing, error: existingError } = await supabase
+      .from('cart_items')
+      .select('id')
+      .eq('cart_id', cartId)
+      .eq('product_id', pid)
+      .maybeSingle();
+    if (existingError) {
+      return NextResponse.json({ error: 'Failed to load cart item' }, { status: 500 });
+    }
     if (!existing) return NextResponse.json({ error: 'Item not found' }, { status: 404 });
-    await prisma.cartItem.update({ where: { id: existing.id }, data: { quantity: qty } });
+    const { error: updateError } = await supabase
+      .from('cart_items')
+      .update({ quantity: qty })
+      .eq('id', existing.id);
+    if (updateError) {
+      return NextResponse.json({ error: 'Failed to update cart item' }, { status: 500 });
+    }
     return NextResponse.json({ ok: true });
   } catch (err) {
     if ((err as Error).message === 'UNAUTHORIZED') {
@@ -102,6 +162,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
     const current = await requireUser(req);
+    const supabase = getDb();
     const contentType = req.headers.get('content-type') || '';
     let pid: number | null = null;
     if (contentType.includes('application/json')) {
@@ -113,9 +174,23 @@ export async function DELETE(req: NextRequest) {
     }
     if (!pid || Number.isNaN(pid)) return NextResponse.json({ error: 'Invalid product id' }, { status: 400 });
 
-    const cart = await prisma.cart.findUnique({ where: { userId: current.id } });
+    const { data: cart, error: cartError } = await supabase
+      .from('carts')
+      .select('id')
+      .eq('user_id', current.id)
+      .maybeSingle();
+    if (cartError) {
+      return NextResponse.json({ error: 'Failed to load cart' }, { status: 500 });
+    }
     if (!cart) return NextResponse.json({ ok: true });
-    await prisma.cartItem.deleteMany({ where: { cartId: cart.id, productId: pid } });
+    const { error: deleteError } = await supabase
+      .from('cart_items')
+      .delete()
+      .eq('cart_id', cart.id)
+      .eq('product_id', pid);
+    if (deleteError) {
+      return NextResponse.json({ error: 'Failed to update cart' }, { status: 500 });
+    }
     return NextResponse.json({ ok: true });
   } catch (err) {
     if ((err as Error).message === 'UNAUTHORIZED') {
