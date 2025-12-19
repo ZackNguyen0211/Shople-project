@@ -2,7 +2,7 @@ import DemoAutofill from './DemoAutofill';
 import { getClientDict } from '../../../lib/i18n-client';
 export default function LoginPage({ searchParams }: { searchParams: { error?: string; next?: string } }) {
   const error = searchParams?.error;
-  const next = searchParams?.next || '';
+  const next = '';
   const t = getClientDict();
 
   return (

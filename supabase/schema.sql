@@ -80,6 +80,17 @@ create table if not exists payments (
   created_at timestamptz not null default now()
 );
 
+create table if not exists invoices (
+  id bigserial primary key,
+  user_id bigint not null references users(id) on delete cascade,
+  order_id text not null unique,
+  email text not null,
+  total integer not null default 0 check (total >= 0),
+  item_count integer not null default 0 check (item_count >= 0),
+  payload jsonb not null,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists shop_requests (
   id bigserial primary key,
   requester_id bigint not null references users(id) on delete cascade,
@@ -101,6 +112,8 @@ create index if not exists idx_orders_shop_id on orders(shop_id);
 create index if not exists idx_orders_status on orders(status);
 create index if not exists idx_order_items_order_id on order_items(order_id);
 create index if not exists idx_shop_requests_requester_id on shop_requests(requester_id);
+create index if not exists idx_invoices_user_id on invoices(user_id);
+create index if not exists idx_invoices_order_id on invoices(order_id);
 
 create or replace function set_updated_at()
 returns trigger as $$
@@ -154,6 +167,7 @@ alter table orders disable row level security;
 alter table order_items disable row level security;
 alter table payments disable row level security;
 alter table shop_requests disable row level security;
+alter table invoices disable row level security;
 
 -- ============================================================================
 -- Grant permissions to service_role (for API access)
@@ -162,6 +176,8 @@ grant usage on schema public to service_role;
 grant all on all tables in schema public to service_role;
 grant all on all sequences in schema public to service_role;
 grant all on all functions in schema public to service_role;
+grant all on invoices to service_role;
+grant usage, select on sequence invoices_id_seq to service_role;
 
 -- ============================================================================
 -- Grant permissions to authenticated users
@@ -170,9 +186,18 @@ grant usage on schema public to authenticated;
 grant all on all tables in schema public to authenticated;
 grant all on all sequences in schema public to authenticated;
 grant all on all functions in schema public to authenticated;
+grant all on invoices to authenticated;
+grant usage, select on sequence invoices_id_seq to authenticated;
 
 -- ============================================================================
 -- Grant limited permissions to anon (public access)
 -- ============================================================================
 grant usage on schema public to anon;
 grant select on all tables in schema public to anon;
+grant select on invoices to anon;
+grant usage, select on sequence invoices_id_seq to anon;
+
+-- Future sequences: ensure grants apply to new sequences, too
+alter default privileges in schema public grant usage, select on sequences to service_role;
+alter default privileges in schema public grant usage, select on sequences to authenticated;
+alter default privileges in schema public grant usage, select on sequences to anon;

@@ -3,18 +3,27 @@ import type { Route } from 'next';
 import { redirect } from 'next/navigation';
 
 import { getCurrentUser } from '../../../../lib/auth';
-import StatusSelect from './status/StatusSelect';
-import { formatVND, statusLabel } from '../../../../lib/format';
+import { formatVND } from '../../../../lib/format';
 import NewProductForm from './NewProductForm';
 import { getDict, getLang } from '../../../../lib/i18n';
 import NewShopForm from './NewShopForm';
-import { getDb, mapOrderItem, mapProduct } from '../../../../lib/db';
+import { getDb, mapProduct } from '../../../../lib/db';
 import ProductCard from './ProductCard';
+
+type InvoicePayloadItem = {
+  id?: number;
+  quantity?: number;
+  product?: {
+    title?: string | null;
+    price?: number | null;
+    shopId?: number | null;
+  } | null;
+};
 
 export default async function ShopManagePage({
   searchParams,
 }: {
-  searchParams: { page?: string; status?: string };
+  searchParams: { page?: string };
 }) {
   const me = getCurrentUser();
   if (!me || me.role !== 'SHOP') redirect('/');
@@ -22,7 +31,6 @@ export default async function ShopManagePage({
   const page = Math.max(1, Number(searchParams.page || 1));
   const pageSize = 20;
   const skip = (page - 1) * pageSize;
-  const status = searchParams.status?.toUpperCase();
 
   const supabase = getDb();
   const { data: myShopsData, error: shopsError } = await supabase
@@ -47,42 +55,58 @@ export default async function ShopManagePage({
     );
   }
 
-  let ordersQuery = supabase
-    .from('orders')
-    .select(
-      'id,status,created_at,items:order_items(id,product_id,price,quantity),shop:shops(id,name),user:users(id,email)'
-    )
-    .in('shop_id', shopIds)
-    .order('created_at', { ascending: false });
-  let countQuery = supabase
-    .from('orders')
-    .select('id', { count: 'exact', head: true })
-    .in('shop_id', shopIds);
-  if (status) {
-    ordersQuery = ordersQuery.eq('status', status);
-    countQuery = countQuery.eq('status', status);
-  }
-  const [ordersRes, totalRes, productsRes] = await Promise.all([
-    ordersQuery.range(skip, skip + pageSize - 1),
-    countQuery,
+  const [invoicesRes, productsRes] = await Promise.all([
+    supabase
+      .from('invoices')
+      .select('order_id,email,total,item_count,payload,created_at', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(skip, skip + pageSize - 1),
     supabase
       .from('products')
       .select('id,title,description,price,image_url,shop_id,shop:shops(name)')
       .in('shop_id', shopIds)
       .order('id', { ascending: false }),
   ]);
-  const orders = (ordersRes.data || []).map((row) => ({
-    id: row.id,
-    status: row.status,
-    items: (row.items || []).map(mapOrderItem),
-    shop: Array.isArray(row.shop) ? row.shop[0] : row.shop,
-    user: Array.isArray(row.user) ? row.user[0] : row.user,
-  }));
+
+  const invoices = (invoicesRes.data || [])
+    .map((row) => {
+      const payloadItems: InvoicePayloadItem[] = row.payload?.items ?? [];
+      const shopItems = payloadItems.filter((item) => {
+        const shopId = item.product?.shopId ?? null;
+        return shopId !== null && shopIds.includes(shopId);
+      });
+
+      if (shopItems.length === 0) return null;
+
+      const shopItemCount = shopItems.reduce((sum, item) => sum + (item.quantity ?? 1), 0);
+      const shopTotal = shopItems.reduce(
+        (sum, item) => sum + (item.quantity ?? 1) * (item.product?.price ?? 0),
+        0
+      );
+
+      return {
+        orderId: row.order_id,
+        email: row.email,
+        total: shopTotal,
+        itemCount: shopItemCount,
+        createdAt: row.created_at,
+        items: shopItems,
+      };
+    })
+    .filter(Boolean) as {
+    orderId: string;
+    email: string;
+    total: number;
+    itemCount: number;
+    createdAt: string;
+    items: InvoicePayloadItem[];
+  }[];
+
   const products = (productsRes.data || []).map((row) => ({
     ...mapProduct(row),
     shop: Array.isArray(row.shop) ? row.shop[0] : row.shop,
   }));
-  const totalPages = Math.max(1, Math.ceil((totalRes.count || 0) / pageSize));
+  const totalPages = Math.max(1, Math.ceil(Math.max(1, invoices.length) / pageSize));
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto' }}>
@@ -209,7 +233,7 @@ export default async function ShopManagePage({
         )}
       </div>
 
-      {/* Orders Section */}
+      {/* Invoices Section */}
       <div className="card" style={{ padding: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
           <div
@@ -228,80 +252,77 @@ export default async function ShopManagePage({
           >
             📋
           </div>
-          <h2 style={{ fontSize: 20, fontWeight: 600, margin: 0 }}>{t.shopManage.orders}</h2>
+          <h2 style={{ fontSize: 20, fontWeight: 600, margin: 0 }}>Hóa đơn</h2>
         </div>
-        <form style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          <select
-            name="status"
-            defaultValue={status || ''}
-            className="input"
-            style={{ maxWidth: 200 }}
-          >
-            <option value="">{t.filters.allStatuses}</option>
-            <option value="PENDING">PENDING</option>
-            <option value="PAID">PAID</option>
-            <option value="SHIPPED">SHIPPED</option>
-            <option value="CANCELLED">CANCELLED</option>
-          </select>
-          <button className="btn" type="submit">
-            {t.filters.apply}
-          </button>
-        </form>
-        {orders.length === 0 ? (
+        {invoices.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px 20px' }}>
             <p className="muted" style={{ fontSize: 16 }}>
               {t.shopManage.none}
             </p>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>{t.tables.id}</th>
-                  <th>{t.tables.user}</th>
-                  <th>{t.tables.shop}</th>
-                  <th>{t.tables.status}</th>
-                  <th>{t.tables.total}</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map((o) => {
-                  const totalAmount = o.items.reduce((s, it) => s + it.price * it.quantity, 0);
-                  return (
-                    <tr key={o.id}>
-                      <td>#{o.id}</td>
-                      <td>{o.user.email}</td>
-                      <td>{o.shop.name}</td>
-                      <td>
-                        <StatusSelect id={o.id} value={o.status} lang={lang} />
-                        <span
-                          style={{ marginLeft: 8 }}
-                          className={`badge badge--${o.status.toLowerCase()}`}
-                        >
-                          {statusLabel(o.status, lang)}
-                        </span>
-                      </td>
-                      <td>{formatVND(totalAmount)}</td>
-                      <td>
-                        <Link className="btn-outline" href={`/orders/${o.id}` as Route}>
-                          {t.orders.view}
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div style={{ display: 'grid', gap: 12 }}>
+            {invoices.map((inv) => {
+              const createdAt = inv.createdAt ? new Date(inv.createdAt) : null;
+              return (
+                <div
+                  key={inv.orderId}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr auto',
+                    gap: 12,
+                    alignItems: 'center',
+                    padding: 16,
+                    border: '1px solid #e5e7eb',
+                    borderRadius: 14,
+                    background: 'white',
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 800, color: '#0f172a' }}>{inv.orderId}</div>
+                    <div style={{ color: '#6b7280', fontSize: 13 }}>
+                      {createdAt ? createdAt.toLocaleString('vi-VN') : ''} · {inv.itemCount} sản
+                      phẩm
+                    </div>
+                    <div style={{ color: '#6b7280', fontSize: 13 }}>Email: {inv.email}</div>
+                    <div style={{ marginTop: 8, display: 'grid', gap: 6 }}>
+                      {inv.items.map((item, idx) => {
+                        const title = item.product?.title || 'Sản phẩm';
+                        const quantity = item.quantity ?? 1;
+                        const price = item.product?.price ?? 0;
+                        return (
+                          <div
+                            key={`${inv.orderId}-${idx}`}
+                            style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}
+                          >
+                            <span style={{ color: '#111827', fontWeight: 600 }}>{title}</span>
+                            <span style={{ color: '#6b7280' }}>
+                              x{quantity} · {formatVND(price)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div style={{ marginTop: 6, fontWeight: 800, color: '#059669', fontSize: 18 }}>
+                      {formatVND(inv.total)}
+                    </div>
+                  </div>
+                  <Link
+                    className="btn-outline"
+                    href={`/orders/${encodeURIComponent(inv.orderId)}`}
+                    style={{ whiteSpace: 'nowrap' }}
+                  >
+                    Xem hóa đơn
+                  </Link>
+                </div>
+              );
+            })}
           </div>
         )}
         <div className="section" style={{ display: 'flex', gap: 8 }}>
           <Link
             className="btn-outline"
-            href={
-              `?${new URLSearchParams({ status: status || '', page: String(Math.max(1, page - 1)) })}` as Route
-            }
+            href={`?${new URLSearchParams({ page: String(Math.max(1, page - 1)) })}` as Route}
           >
             {t.prev}
           </Link>
@@ -309,7 +330,7 @@ export default async function ShopManagePage({
           <Link
             className="btn-outline"
             href={
-              `?${new URLSearchParams({ status: status || '', page: String(Math.min(totalPages, page + 1)) })}` as Route
+              `?${new URLSearchParams({ page: String(Math.min(totalPages, page + 1)) })}` as Route
             }
           >
             {t.next}

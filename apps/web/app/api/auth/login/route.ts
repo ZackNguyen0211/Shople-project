@@ -17,12 +17,11 @@ export async function POST(req: NextRequest) {
       .trim()
       .toLowerCase();
     const password = String(form.get('password') || '');
-    const nextParam = String(form.get('next') || '') || req.nextUrl.searchParams.get('next') || '/';
+    const nextParam = '/';
 
     if (!email || !password) {
       const loginUrl = new URL('/login', req.url);
       loginUrl.searchParams.set('error', 'Email and password are required');
-      if (nextParam) loginUrl.searchParams.set('next', nextParam);
       return NextResponse.redirect(loginUrl);
     }
 
@@ -34,7 +33,6 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
     const invalidUrl = new URL('/login', req.url);
     invalidUrl.searchParams.set('error', 'Invalid credentials');
-    if (nextParam) invalidUrl.searchParams.set('next', nextParam);
 
     if (error || !user) {
       return NextResponse.redirect(invalidUrl);
@@ -52,8 +50,7 @@ export async function POST(req: NextRequest) {
       role: user.role,
       avatar_url: user.avatar_url,
     });
-    const destination = nextParam.startsWith('/') ? nextParam : '/';
-    const redirect = NextResponse.redirect(new URL(destination, req.url));
+    const redirect = NextResponse.redirect(new URL('/', req.url));
     redirect.cookies.set(getAuthCookieName(), token, authCookieOptions);
     return redirect;
   } catch (e) {
