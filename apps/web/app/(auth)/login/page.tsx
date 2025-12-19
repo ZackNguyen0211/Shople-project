@@ -1,6 +1,10 @@
 import DemoAutofill from './DemoAutofill';
 import { getClientDict } from '../../../lib/i18n-client';
-export default function LoginPage({ searchParams }: { searchParams: { error?: string; next?: string } }) {
+export default function LoginPage({
+  searchParams,
+}: {
+  searchParams: { error?: string; next?: string };
+}) {
   const error = searchParams?.error;
   const next = '';
   const t = getClientDict();
@@ -20,10 +24,15 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
           <span>{t.auth.password}</span>
           <input name="password" type="password" required className="input" />
         </label>
-        <button type="submit" className="btn">{t.auth.continue}</button>
+        <button type="submit" className="btn">
+          {t.auth.continue}
+        </button>
         {/* Demo autofill buttons */}
         <DemoAutofill />
-        <a href={next ? `/register?next=${encodeURIComponent(next)}` : '/register'} style={{ color: 'var(--primary)' }}>
+        <a
+          href={next ? `/register?next=${encodeURIComponent(next)}` : '/register'}
+          style={{ color: 'var(--primary)' }}
+        >
           {t.auth.signupPrompt}
         </a>
       </form>
