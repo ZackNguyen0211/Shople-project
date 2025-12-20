@@ -1,10 +1,16 @@
-"use client";
+'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 const STORAGE_KEY = 'recentSearches';
 
-export default function SearchBar({ placeholder, buttonLabel }: { placeholder: string; buttonLabel: string }) {
+export default function SearchBar({
+  placeholder,
+  buttonLabel,
+}: {
+  placeholder: string;
+  buttonLabel: string;
+}) {
   const router = useRouter();
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -19,7 +25,9 @@ export default function SearchBar({ placeholder, buttonLabel }: { placeholder: s
       try {
         const res = await fetch('/api/search/recent', { cache: 'no-store' });
         if (res.ok) server = await res.json();
-      } catch {}
+      } catch {
+        // Ignore fetch errors
+      }
       let local: string[] = [];
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
@@ -27,7 +35,9 @@ export default function SearchBar({ placeholder, buttonLabel }: { placeholder: s
           const items = JSON.parse(raw) as string[];
           if (Array.isArray(items)) local = items;
         }
-      } catch {}
+      } catch {
+        // Ignore JSON parse errors
+      }
       const merged = [...server, ...local].reduce<string[]>((acc, cur) => {
         const v = String(cur || '').trim();
         if (!v) return acc;
@@ -54,7 +64,9 @@ export default function SearchBar({ placeholder, buttonLabel }: { placeholder: s
       const next = [v, ...prev.filter((x) => x.toLowerCase() !== v.toLowerCase())].slice(0, 7);
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      } catch {}
+      } catch {
+        // Ignore localStorage errors
+      }
       // Best-effort sync to server cookie
       try {
         fetch('/api/search/recent', {
@@ -62,7 +74,9 @@ export default function SearchBar({ placeholder, buttonLabel }: { placeholder: s
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ q: v }),
         });
-      } catch {}
+      } catch {
+        // Ignore sync errors
+      }
       return next;
     });
   }
@@ -81,7 +95,9 @@ export default function SearchBar({ placeholder, buttonLabel }: { placeholder: s
   }
 
   const visible = open && recent.length > 0;
-  const filtered = query ? recent.filter((r) => r.toLowerCase().includes(query.toLowerCase())) : recent;
+  const filtered = query
+    ? recent.filter((r) => r.toLowerCase().includes(query.toLowerCase()))
+    : recent;
 
   return (
     <div ref={wrapRef} className="searchbar" style={{ position: 'relative' }}>
@@ -141,7 +157,14 @@ export default function SearchBar({ placeholder, buttonLabel }: { placeholder: s
                 type="button"
                 aria-label="Remove from history"
                 className="btn-outline"
-                style={{ border: 'none', borderRadius: 0, padding: '8px 10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                style={{
+                  border: 'none',
+                  borderRadius: 0,
+                  padding: '8px 10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
                 onClick={async (e) => {
                   e.stopPropagation();
                   setRecent((prev) => prev.filter((x) => x !== item));
@@ -150,14 +173,25 @@ export default function SearchBar({ placeholder, buttonLabel }: { placeholder: s
                     const arr = raw ? (JSON.parse(raw) as string[]) : [];
                     const next = Array.isArray(arr) ? arr.filter((x) => x !== item) : [];
                     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-                  } catch {}
+                  } catch {
+                    // Ignore localStorage errors
+                  }
                   try {
-                    await fetch(`/api/search/recent?q=${encodeURIComponent(item)}`, { method: 'DELETE' });
-                  } catch {}
+                    await fetch(`/api/search/recent?q=${encodeURIComponent(item)}`, {
+                      method: 'DELETE',
+                    });
+                  } catch {
+                    // Ignore delete errors
+                  }
                 }}
               >
                 <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
-                  <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  <path
+                    d="M6 6l12 12M18 6L6 18"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
                 </svg>
               </button>
             </div>

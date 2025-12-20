@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { getAuthCookieName, verifyAuthToken } from '../../../../lib/auth';
-import { getDb, mapProduct, mapProductImage } from '../../../../lib/db';
+import { getAuthCookieName, verifyAuthToken } from '@/lib/auth';
+import { getDb, mapProduct, mapProductImage } from '@/lib/db';
 
 type Params = { params: { id: string } };
+
+interface ShopData {
+  owner_id: number;
+}
 
 export async function GET(_req: NextRequest, { params }: Params) {
   const id = Number(params.id);
@@ -27,9 +31,10 @@ export async function GET(_req: NextRequest, { params }: Params) {
   if (imagesError) {
     return NextResponse.json({ error: 'Failed to load images' }, { status: 500 });
   }
+  const shop = Array.isArray(product.shop) ? product.shop[0] : product.shop;
   return NextResponse.json({
     ...mapProduct(product),
-    shop: product.shop ? { ownerId: product.shop.owner_id } : null,
+    shop: shop ? { ownerId: (shop as ShopData).owner_id } : null,
     images: (images || []).map(mapProductImage),
   });
 }
@@ -49,7 +54,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       .select('id,shop:shops(owner_id)')
       .eq('id', id)
       .maybeSingle();
-    if (prodError || !prod || prod.shop?.owner_id !== current.id) {
+    const prodShop = Array.isArray(prod?.shop) ? prod.shop[0] : prod?.shop;
+    if (prodError || !prod || !prodShop || (prodShop as ShopData).owner_id !== current.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
   }
@@ -58,7 +64,6 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const title = typeof body.title === 'string' ? body.title.trim() : undefined;
   const description = typeof body.description === 'string' ? body.description : undefined;
   const price = body.price != null ? Number(body.price) : undefined;
-  const shopId = body.shopId != null ? Number(body.shopId) : undefined;
   const hasImageUrls = body.imageUrls !== undefined;
   const imageUrls: string[] = Array.isArray(body.imageUrls)
     ? body.imageUrls.map((s: unknown) => String(s || '').trim()).filter(Boolean)
@@ -127,7 +132,8 @@ export async function DELETE(req: NextRequest, { params }: Params) {
       .select('id,shop:shops(owner_id)')
       .eq('id', id)
       .maybeSingle();
-    if (prodError || !prod || prod.shop?.owner_id !== current.id) {
+    const prodShop = Array.isArray(prod?.shop) ? prod.shop[0] : prod?.shop;
+    if (prodError || !prod || !prodShop || (prodShop as ShopData).owner_id !== current.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
   }

@@ -1,13 +1,26 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import type { Route } from 'next';
-import { getCurrentUser } from '../../../../lib/auth';
-import { formatVND, statusLabel } from '../../../../lib/format';
-import { getDict, getLang } from '../../../../lib/i18n';
+import { getCurrentUser } from '@/lib/auth';
+import { formatVND, statusLabel } from '@/lib/format';
+import { getDict, getLang } from '@/lib/i18n';
 import StatusSelect from './StatusSelect';
-import { getDb, mapOrderItem } from '../../../../lib/db';
+import { getDb, mapOrderItem } from '@/lib/db';
 
-export default async function AdminOrdersPage({ searchParams }: { searchParams: { status?: string; page?: string; sort?: string } }) {
+interface OrderRow {
+  id: number;
+  status: string;
+  created_at?: string;
+  user: Array<{ id: number; email: string }>;
+  shop: Array<{ id: number; name: string }>;
+  items: Array<{ id: number; product_id: number; price: number; quantity: number }>;
+}
+
+export default async function AdminOrdersPage({
+  searchParams,
+}: {
+  searchParams: { status?: string; page?: string; sort?: string };
+}) {
   const user = getCurrentUser();
   if (!user || user.role !== 'ADMIN') redirect('/');
 
@@ -22,7 +35,9 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
   const supabase = getDb();
   let ordersQuery = supabase
     .from('orders')
-    .select('id,status,created_at,items:order_items(id,product_id,price,quantity),user:users(id,email),shop:shops(id,name)')
+    .select(
+      'id,status,created_at,items:order_items(id,product_id,price,quantity),user:users(id,email),shop:shops(id,name)'
+    )
     .order('created_at', { ascending: sort === 'asc' });
   let countQuery = supabase.from('orders').select('id', { count: 'exact', head: true });
   if (status) {
@@ -33,11 +48,11 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
     ordersQuery.range(skip, skip + pageSize - 1),
     countQuery,
   ]);
-  const orders = (ordersRes.data || []).map((row) => ({
+  const orders = (ordersRes.data || []).map((row: OrderRow) => ({
     id: row.id,
     status: row.status,
-    user: row.user,
-    shop: row.shop,
+    user: row.user?.[0] || { id: 0, email: '' },
+    shop: row.shop?.[0] || { id: 0, name: '' },
     items: (row.items || []).map(mapOrderItem),
   }));
 
@@ -48,7 +63,12 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
       <h1 className="page-title">{t.orders.title}</h1>
 
       <form style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-        <select name="status" defaultValue={status || ''} className="input" style={{ maxWidth: 200 }}>
+        <select
+          name="status"
+          defaultValue={status || ''}
+          className="input"
+          style={{ maxWidth: 200 }}
+        >
           <option value="">{t.filters.allStatuses}</option>
           <option value="PENDING">PENDING</option>
           <option value="PAID">PAID</option>
@@ -59,7 +79,9 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
           <option value="desc">{t.filters.newest}</option>
           <option value="asc">{t.filters.oldest}</option>
         </select>
-        <button className="btn" type="submit">{t.filters.apply}</button>
+        <button className="btn" type="submit">
+          {t.filters.apply}
+        </button>
       </form>
 
       <table className="table">
@@ -83,11 +105,18 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
                 <td>{o.shop.name}</td>
                 <td>
                   <StatusSelect id={o.id} value={o.status} lang={lang} />
-                  <span style={{ marginLeft: 8 }} className={`badge badge--${o.status.toLowerCase()}`}>{statusLabel(o.status, lang)}</span>
+                  <span
+                    style={{ marginLeft: 8 }}
+                    className={`badge badge--${o.status.toLowerCase()}`}
+                  >
+                    {statusLabel(o.status, lang)}
+                  </span>
                 </td>
                 <td>{formatVND(total)}</td>
                 <td>
-                  <Link className="btn-outline" href={`/orders/${o.id}` as Route}>{t.orders.view}</Link>
+                  <Link className="btn-outline" href={`/orders/${o.id}` as Route}>
+                    {t.orders.view}
+                  </Link>
                 </td>
               </tr>
             );
@@ -96,11 +125,21 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
       </table>
 
       <div className="section" style={{ display: 'flex', gap: 8 }}>
-        <Link className="btn-outline" href={`?${new URLSearchParams({ status: status || '', sort, page: String(Math.max(1, page - 1)) })}` as Route}>
+        <Link
+          className="btn-outline"
+          href={
+            `?${new URLSearchParams({ status: status || '', sort, page: String(Math.max(1, page - 1)) })}` as Route
+          }
+        >
           {t.prev}
         </Link>
         <span className="muted">{t.pagination.page(page, totalPages)}</span>
-        <Link className="btn-outline" href={`?${new URLSearchParams({ status: status || '', sort, page: String(Math.min(totalPages, page + 1)) })}` as Route}>
+        <Link
+          className="btn-outline"
+          href={
+            `?${new URLSearchParams({ status: status || '', sort, page: String(Math.min(totalPages, page + 1)) })}` as Route
+          }
+        >
           {t.next}
         </Link>
       </div>

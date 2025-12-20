@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getClientDict } from '../../../../lib/i18n-client';
-import ImageUploader from '../../../../components/ImageUploader';
+import { getClientDict } from '@/lib/i18n-client';
+import ImageUploader from '@/components/ImageUploader';
 
 type Shop = { id: number; name: string };
 
@@ -52,7 +52,11 @@ export default function CreateProductPage() {
     <div className="card" style={{ maxWidth: 720 }}>
       <h1 className="page-title">{t.adminButtons.create || 'Create product'}</h1>
       <form onSubmit={onSubmit} style={{ display: 'grid', gap: 12 }}>
-        {msg ? <p className="muted" style={{ color: '#b91c1c' }}>{msg}</p> : null}
+        {msg ? (
+          <p className="muted" style={{ color: '#b91c1c' }}>
+            {msg}
+          </p>
+        ) : null}
         <label style={{ display: 'grid', gap: 4 }}>
           <span>{t.forms.title}</span>
           <input className="input" name="title" required />
@@ -78,8 +82,16 @@ export default function CreateProductPage() {
           </select>
         </label>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn" type="submit">{t.adminButtons.create}</button>
-          <button className="btn-outline" type="button" onClick={() => router.push('/admin/products')}>{t.adminButtons.cancel}</button>
+          <button className="btn" type="submit">
+            {t.adminButtons.create}
+          </button>
+          <button
+            className="btn-outline"
+            type="button"
+            onClick={() => router.push('/admin/products')}
+          >
+            {t.adminButtons.cancel}
+          </button>
         </div>
       </form>
     </div>

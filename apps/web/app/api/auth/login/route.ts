@@ -17,7 +17,6 @@ export async function POST(req: NextRequest) {
       .trim()
       .toLowerCase();
     const password = String(form.get('password') || '');
-    const nextParam = '/';
 
     if (!email || !password) {
       const loginUrl = new URL('/login', req.url);

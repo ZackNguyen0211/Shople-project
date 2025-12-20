@@ -14,7 +14,9 @@ export async function GET(req: NextRequest, { params }: Params) {
   const supabase = getDb();
   const { data: order, error } = await supabase
     .from('orders')
-    .select('id,status,user_id,shop_id,created_at,items:order_items(id,product_id,price,quantity),payment:payments(id,provider,status,ref)')
+    .select(
+      'id,status,user_id,shop_id,created_at,items:order_items(id,product_id,price,quantity),payment:payments(id,provider,status,ref)'
+    )
     .eq('id', id)
     .maybeSingle();
   if (error || !order) {
@@ -59,7 +61,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       .select('id,shop:shops(owner_id)')
       .eq('id', id)
       .maybeSingle();
-    if (ownableError || !ownable || ownable.shop?.owner_id !== current.id) {
+    const shop = Array.isArray(ownable?.shop) ? ownable.shop[0] : ownable?.shop;
+    if (ownableError || !ownable || !shop || shop.owner_id !== current.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
   }

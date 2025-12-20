@@ -1,9 +1,9 @@
 'use client';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { CategoryIcon } from '../../components/CategoryIcon';
+import { CategoryIcon, type CategoryIconKey } from '@/components/CategoryIcon';
 
-type Cat = { name: string; q: string; icon: string };
+type Cat = { name: string; q: string; icon: CategoryIconKey };
 
 export default function CategoriesCarousel({
   title,
@@ -57,7 +57,7 @@ export default function CategoriesCarousel({
                         className="cat-item card-lite"
                         href={{ pathname: '/search', query: { q: c.q } }}
                       >
-                        <CategoryIcon icon={c.icon as any} size={56} />
+                        <CategoryIcon icon={c.icon} size={56} />
                         <span className="cat-name-small">{c.name}</span>
                       </Link>
                     ))}

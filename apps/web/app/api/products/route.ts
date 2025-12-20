@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { getDb, mapProduct } from '../../../lib/db';
-import { getAuthCookieName, verifyAuthToken } from '../../../lib/auth';
+import { getDb, mapProduct } from '@/lib/db';
+import { getAuthCookieName, verifyAuthToken } from '@/lib/auth';
+
+interface ShopData {
+  id: number;
+  name: string;
+}
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -30,10 +35,13 @@ export async function GET(req: NextRequest) {
   if (error) {
     return NextResponse.json({ error: 'Failed to load products' }, { status: 500 });
   }
-  const items = (data || []).map((row) => ({
-    ...mapProduct(row),
-    shop: row.shop ? { id: row.shop.id, name: row.shop.name } : null,
-  }));
+  const items = (data || []).map((row) => {
+    const shop = Array.isArray(row.shop) ? row.shop[0] : row.shop;
+    return {
+      ...mapProduct(row),
+      shop: shop ? { id: (shop as ShopData).id, name: (shop as ShopData).name } : null,
+    };
+  });
   const total = includeTotal ? count || 0 : 0;
 
   if (includeTotal) return NextResponse.json({ items, total });
@@ -54,7 +62,10 @@ export async function POST(req: NextRequest) {
   const imageUrls: string[] = Array.isArray(body.imageUrls)
     ? body.imageUrls.map((s: unknown) => String(s || '').trim()).filter(Boolean)
     : typeof body.imageUrls === 'string'
-      ? String(body.imageUrls).split(/\n|,/).map((s) => s.trim()).filter(Boolean)
+      ? String(body.imageUrls)
+          .split(/\n|,/)
+          .map((s) => s.trim())
+          .filter(Boolean)
       : [];
   if (!title || !Number.isFinite(price) || !Number.isFinite(shopId)) {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });

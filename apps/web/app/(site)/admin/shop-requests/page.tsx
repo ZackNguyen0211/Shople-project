@@ -1,8 +1,7 @@
-import Link from 'next/link';
 import type { Route } from 'next';
 import { redirect } from 'next/navigation';
-import { getCurrentUser } from '../../../../../lib/auth';
-import { getDb } from '../../../../../lib/db';
+import { getCurrentUser } from '@/lib/auth';
+import { getDb } from '@/lib/db';
 
 export default async function AdminShopRequestsPage() {
   const user = getCurrentUser();
@@ -52,10 +51,14 @@ export default async function AdminShopRequestsPage() {
                   {r.status === 'PENDING' ? (
                     <>
                       <form action={`/api/shops/requests/${r.id}/approve` as Route} method="post">
-                        <button className="btn" type="submit">Approve</button>
+                        <button className="btn" type="submit">
+                          Approve
+                        </button>
                       </form>
                       <form action={`/api/shops/requests/${r.id}/reject` as Route} method="post">
-                        <button className="btn-outline" type="submit">Reject</button>
+                        <button className="btn-outline" type="submit">
+                          Reject
+                        </button>
                       </form>
                     </>
                   ) : null}
