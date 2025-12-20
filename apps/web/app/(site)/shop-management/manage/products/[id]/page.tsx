@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { getClientDict } from '../../../../../../lib/i18n-client';
-import ImageUploader from '../../../../../../components/ImageUploader';
+import ImageUploader, { ImageUploaderRef } from '../../../../../../components/ImageUploader';
 type Product = {
   id: number;
   title: string;
@@ -18,6 +18,7 @@ export default function ShopEditProductPage() {
   const params = useParams();
   const t = getClientDict();
   const id = Number(params?.id);
+  const imageUploaderRef = useRef<ImageUploaderRef>(null);
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState<Product | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -43,12 +44,13 @@ export default function ShopEditProductPage() {
     e.preventDefault();
     if (!product) return;
     const fd = new FormData(e.currentTarget);
+    const imageUrls = imageUploaderRef.current?.getUploadedUrls() || [];
     const payload = {
       title: String(fd.get('title') || ''),
       price: Number(fd.get('price') || 0),
       description: String(fd.get('description') || ''),
       shopId: product.shopId,
-      imageUrls: images,
+      imageUrls,
     };
     const res = await fetch(`/api/products/${id}`, {
       method: 'PATCH',
@@ -73,7 +75,12 @@ export default function ShopEditProductPage() {
     if (!confirm(t.messages.deleteConfirm)) return;
     if (!product) return;
     const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
-    if (res.ok) router.push('/shop/manage');
+    if (res.ok) {
+      router.refresh(); // Revalidate cache
+      // Wait for revalidatePath to complete before navigating
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      router.push('/shop-management/manage');
+    }
   }
 
   if (loading || !product) {
@@ -195,7 +202,7 @@ export default function ShopEditProductPage() {
             <div style={{ marginBottom: 8 }}>
               <span style={{ fontWeight: 600, fontSize: 14 }}>Hình ảnh</span>
             </div>
-            <ImageUploader label="" initialUrls={images} onChange={setImages} />
+            <ImageUploader label="" initialUrls={images} ref={imageUploaderRef} />
           </div>
 
           {/* Action Buttons */}

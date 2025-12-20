@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { getDb } from '@/lib/db';
-import ShopRequestActions from '../ShopRequestActions';
+import ShopRequestActions from '@/components/admin/ShopRequestActions';
 
 export default async function AdminShopRequestsPage() {
   const user = getCurrentUser();

@@ -54,7 +54,10 @@ export async function POST(req: NextRequest, { params }: Params) {
   const imageUrls: string[] = Array.isArray(body.imageUrls)
     ? body.imageUrls.map((s: unknown) => String(s || '').trim()).filter(Boolean)
     : typeof body.imageUrls === 'string'
-      ? String(body.imageUrls).split(/\n|,/).map((s) => s.trim()).filter(Boolean)
+      ? String(body.imageUrls)
+          .split(/\n|,/)
+          .map((s) => s.trim())
+          .filter(Boolean)
       : [];
 
   if (!title || !Number.isFinite(price)) {

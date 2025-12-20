@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { formatVND } from '../../../../lib/format';
 import { getDb } from '../../../../lib/db';
 import { getCurrentUser } from '../../../../lib/auth';
-import InvoiceActions from '../../checkout/success/InvoiceActions';
+import InvoiceActions from '@/components/InvoiceActions';
 
 type InvoicePayloadItem = {
   id?: number;
@@ -62,7 +62,6 @@ export default async function OrderPage({ params }: Params) {
 
   if (error || !invoice) notFound();
 
-  // Allow buyers to view full invoice and shop owners to view only their shop's items
   let scopedItems: InvoicePayloadItem[] = invoice.payload?.items ?? [];
   if (user.id !== invoice.user_id) {
     if (user.role === 'SHOP') {

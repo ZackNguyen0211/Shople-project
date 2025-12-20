@@ -1,7 +1,15 @@
-"use client";
+'use client';
 import { useTransition, useState } from 'react';
 
-export default function StatusSelect({ id, value, lang = 'vi' }: { id: number; value: string; lang?: 'vi' | 'en' }) {
+export default function StatusSelect({
+  id,
+  value,
+  lang = 'vi',
+}: {
+  id: number;
+  value: string;
+  lang?: 'vi' | 'en';
+}) {
   const [pending, start] = useTransition();
   const [status, setStatus] = useState(value);
   const [msg, setMsg] = useState<string | null>(null);
@@ -24,14 +32,23 @@ export default function StatusSelect({ id, value, lang = 'vi' }: { id: number; v
 
   return (
     <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-      <select className="input" value={status} disabled={pending} onChange={(e) => start(() => update(e.target.value))}>
+      <select
+        className="input"
+        value={status}
+        disabled={pending}
+        onChange={(e) => start(() => update(e.target.value))}
+      >
         {['PENDING', 'PAID', 'SHIPPED', 'CANCELLED'].map((s) => (
           <option key={s} value={s}>
             {s}
           </option>
         ))}
       </select>
-      {msg ? <span className="muted" style={{ fontSize: 12 }}>{msg}</span> : null}
+      {msg ? (
+        <span className="muted" style={{ fontSize: 12 }}>
+          {msg}
+        </span>
+      ) : null}
     </div>
   );
 }

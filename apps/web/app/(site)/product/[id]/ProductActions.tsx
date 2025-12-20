@@ -30,9 +30,7 @@ export default function ProductActions({
       if (res.ok) {
         setToast({ show: true, success: true, message: `Đã thêm ${qty} sản phẩm vào giỏ hàng!` });
         setQty(1);
-        // Dispatch event to update cart icon
         window.dispatchEvent(new Event('cartUpdated'));
-        // Auto hide toast after 3 seconds
         setTimeout(() => setToast({ show: false, success: false, message: '' }), 3000);
       } else {
         const data = await res.json();

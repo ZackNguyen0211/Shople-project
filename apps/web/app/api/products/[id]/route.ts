@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 
 import { getAuthCookieName, verifyAuthToken } from '@/lib/auth';
 import { getDb, mapProduct, mapProductImage } from '@/lib/db';
@@ -142,5 +143,9 @@ export async function DELETE(req: NextRequest, { params }: Params) {
   if (error) {
     return NextResponse.json({ error: 'Failed to delete product' }, { status: 500 });
   }
+
+  // Revalidate cache for shop management page
+  revalidatePath('/shop-management/manage');
+
   return NextResponse.json({ ok: true });
 }

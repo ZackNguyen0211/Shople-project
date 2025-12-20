@@ -34,7 +34,6 @@ export default function CartIcon({ label }: { label: string }) {
   }, []);
 
   useEffect(() => {
-    // Listen for custom events when items are added to cart
     const handleCartUpdate = () => {
       loadCart();
     };

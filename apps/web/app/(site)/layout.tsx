@@ -2,11 +2,11 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { getCurrentUser } from '../../lib/auth';
 import { getDict, getLang } from '../../lib/i18n';
-import LanguageSwitcher from './LanguageSwitcher';
-import NotificationBell from './NotificationBell';
-import SearchBar from './SearchBar';
-import UserAvatar from './UserAvatar';
-import CartIcon from './CartIcon';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+import NotificationBell from '@/components/NotificationBell';
+import SearchBar from '@/components/SearchBar';
+import UserAvatar from '@/components/UserAvatar';
+import CartIcon from '@/components/CartIcon';
 
 export default function SiteLayout({ children }: { children: ReactNode }) {
   const user = getCurrentUser();
@@ -18,13 +18,13 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
         {/* Top utility row */}
         <div className="container header-top">
           <nav className="top-links">
-            <Link href="/shops">{t.nav.shops}</Link>
+            <Link href="/shop-lists">{t.nav.shops}</Link>
             <span className="sep">|</span>
             <Link href="/orders">{t.nav.orders}</Link>
             {user?.role === 'SHOP' ? (
               <>
                 <span className="sep">|</span>
-                <Link href="/shop/manage">{t.nav.shopManage}</Link>
+                <Link href="/shop-management/manage">{t.nav.shopManage}</Link>
               </>
             ) : null}
             {user?.role === 'ADMIN' ? (
@@ -78,7 +78,7 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
             <div className="muted">{t.footer.links}</div>
             <div style={{ display: 'grid' }}>
               <Link href={{ pathname: '/' }}>{t.footer.home}</Link>
-              <Link href="/shops">{t.footer.shops}</Link>
+              <Link href="/shop-lists">{t.footer.shops}</Link>
               <Link href="/orders">{t.footer.orders}</Link>
             </div>
           </div>

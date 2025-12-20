@@ -66,7 +66,7 @@ export default function ShopCTA({ role, lang }: { role: string; lang: 'en' | 'vi
             : 'Truy cập bảng điều khiển cửa hàng để quản lý sản phẩm và đơn hàng.'}
         </p>
         <a
-          href="/shop/manage"
+          href="/shop-management/manage"
           style={{
             display: 'inline-block',
             padding: '10px 20px',

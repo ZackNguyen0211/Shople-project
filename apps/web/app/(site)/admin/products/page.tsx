@@ -37,7 +37,6 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
 
   const listLabel = t.adminPage?.products ?? 'Products';
   const subtitle = 'Manage your catalog';
-  const createLabel = 'Create';
   const editLabel = 'Edit';
   const totalLabel = 'Items';
 
@@ -121,26 +120,6 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
             </h1>
             <p style={{ margin: '8px 0 0', color: '#6b7280', fontSize: 15 }}>{subtitle}</p>
           </div>
-
-          <Link
-            className="btn"
-            href={{ pathname: '/admin/products/new' }}
-            style={{
-              padding: '12px 24px',
-              borderRadius: 12,
-              background: '#10b981',
-              color: 'white',
-              fontWeight: 600,
-              border: 'none',
-              whiteSpace: 'nowrap',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              textDecoration: 'none',
-              display: 'inline-block',
-            }}
-          >
-            + {createLabel}
-          </Link>
         </div>
 
         <div
@@ -238,26 +217,9 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
             <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: '#059669' }}>
               {'No items yet'}
             </div>
-            <div style={{ color: '#6b7280', marginBottom: 24, fontSize: 14 }}>
-              {'Create your first product to start selling.'}
+            <div style={{ color: '#6b7280', fontSize: 14 }}>
+              {'Products from shops will appear here'}
             </div>
-            <Link
-              className="btn"
-              href="/admin/products/new"
-              style={{
-                padding: '12px 28px',
-                borderRadius: 12,
-                background: '#10b981',
-                color: 'white',
-                fontWeight: 600,
-                border: 'none',
-                cursor: 'pointer',
-                textDecoration: 'none',
-                display: 'inline-block',
-              }}
-            >
-              + {createLabel}
-            </Link>
           </div>
         ) : (
           <div

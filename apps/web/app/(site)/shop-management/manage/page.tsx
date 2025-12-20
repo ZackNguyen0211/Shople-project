@@ -4,12 +4,11 @@ import { redirect } from 'next/navigation';
 
 import { getCurrentUser } from '../../../../lib/auth';
 import { formatVND } from '../../../../lib/format';
-import NewProductForm from './NewProductForm';
 import { getDict, getLang } from '../../../../lib/i18n';
-import NewShopForm from './NewShopForm';
 import { getDb, mapProduct } from '../../../../lib/db';
 import ProductCard from './ProductCard';
 
+// Reset TypeScript cache
 type InvoicePayloadItem = {
   id?: number;
   quantity?: number;
@@ -45,16 +44,6 @@ export default async function ShopManagePage({
   const shopIds = myShops.map((s) => s.id);
   const lang = getLang();
   const t = getDict(lang);
-
-  if (shopIds.length === 0) {
-    return (
-      <div className="card">
-        <h1 className="page-title">{t.shopManage.title}</h1>
-        <p className="muted">Bạn chưa có shop nào.</p>
-        <NewShopForm />
-      </div>
-    );
-  }
 
   const anyVerified = myShops.some(
     (s: { id: number; name: string; verified: boolean }) => s.verified === true
@@ -93,7 +82,7 @@ export default async function ShopManagePage({
           </h1>
           <p className="muted">Shop của bạn đang chờ xác thực. Vui lòng đợi admin approve.</p>
           <div style={{ marginTop: 16 }}>
-            <a href="/shop/request" className="btn-outline">
+            <a href="/shop-management/request" className="btn-outline">
               Gửi yêu cầu xác thực lại
             </a>
           </div>
@@ -110,7 +99,7 @@ export default async function ShopManagePage({
             Shop của bạn chưa được xác thực. Vui lòng gửi yêu cầu xác thực để bắt đầu.
           </p>
           <div style={{ marginTop: 16 }}>
-            <a href="/shop/request" className="btn">
+            <a href="/shop-management/request" className="btn">
               Gửi yêu cầu xác thực
             </a>
           </div>
@@ -220,9 +209,9 @@ export default async function ShopManagePage({
         </div>
       </div>
 
-      {/* Add Product Section */}
+      {/* Add Product CTA */}
       <div className="card" style={{ marginBottom: 24, padding: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div
             style={{
               width: 40,
@@ -239,9 +228,16 @@ export default async function ShopManagePage({
           >
             ➕
           </div>
-          <h2 style={{ fontSize: 20, fontWeight: 600, margin: 0 }}>{t.shopManage.addProduct}</h2>
+          <div style={{ flex: 1 }}>
+            <h2 style={{ fontSize: 20, fontWeight: 600, margin: 0 }}>{t.shopManage.addProduct}</h2>
+            <p className="muted" style={{ margin: '4px 0 0 0' }}>
+              Thêm sản phẩm mới với giao diện giống trang chỉnh sửa
+            </p>
+          </div>
+          <Link href={'/shop-management/manage/products/new' as Route} className="btn">
+            Thêm sản phẩm
+          </Link>
         </div>
-        <NewProductForm shops={myShops} lang={lang} />
       </div>
 
       {/* Products Section - Card Grid */}

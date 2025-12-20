@@ -3,7 +3,7 @@ import { getCurrentUser } from '../../../lib/auth';
 import { formatVND } from '../../../lib/format';
 import { getDict, getLang } from '../../../lib/i18n';
 import { getDb } from '../../../lib/db';
-import LoginRequired from '../LoginRequired';
+import LoginRequired from '@/components/LoginRequired';
 
 type InvoicePayloadItem = {
   id?: number;

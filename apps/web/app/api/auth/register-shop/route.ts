@@ -23,7 +23,9 @@ export async function POST(req: NextRequest) {
   const password = String(form.get('password') || '');
   const confirm = String(form.get('confirm') || '');
   const nextParam =
-    String(form.get('next') || '') || req.nextUrl.searchParams.get('next') || '/shop/manage';
+    String(form.get('next') || '') ||
+    req.nextUrl.searchParams.get('next') ||
+    '/shop-management/manage';
 
   const redirectWithError = (message: string) => {
     const url = new URL('/register-shop', req.url);
@@ -105,7 +107,7 @@ export async function POST(req: NextRequest) {
       role: user.role,
       avatar_url: user.avatar_url,
     });
-    const destination = nextParam.startsWith('/') ? nextParam : '/shop/manage';
+    const destination = nextParam.startsWith('/') ? nextParam : '/shop-management/manage';
     const redirect = NextResponse.redirect(new URL(destination, req.url));
     redirect.cookies.set(getAuthCookieName(), token, authCookieOptions);
     return redirect;

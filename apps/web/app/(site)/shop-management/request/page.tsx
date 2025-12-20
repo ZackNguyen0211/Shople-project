@@ -26,7 +26,7 @@ export default function ShopRequestPage() {
 
       if (res.ok) {
         setSuccess(true);
-        setTimeout(() => router.push('/shop/manage'), 2000);
+        setTimeout(() => router.push('/shop-management/manage'), 2000);
       } else {
         const data = await res.json();
         setError(data.error || 'Gửi yêu cầu thất bại');

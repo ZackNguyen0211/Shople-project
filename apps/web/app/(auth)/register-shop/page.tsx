@@ -8,7 +8,7 @@ export default function RegisterShopPage({
   searchParams: { error?: string; next?: string };
 }) {
   const error = searchParams?.error;
-  const next = searchParams?.next || '/shop/manage';
+  const next = searchParams?.next || '/shop-management/manage';
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {

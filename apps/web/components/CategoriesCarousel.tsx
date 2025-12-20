@@ -12,7 +12,6 @@ export default function CategoriesCarousel({
   title: string;
   items: ReadonlyArray<Cat>;
 }) {
-  // Show 2 rows x 8 columns = 16 items per page
   const perPage = 16;
   const pages = useMemo(() => Math.max(1, Math.ceil(items.length / perPage)), [items.length]);
   const [page, setPage] = useState(0);

@@ -4,7 +4,7 @@ import type { Route } from 'next';
 import { getCurrentUser } from '@/lib/auth';
 import { formatVND, statusLabel } from '@/lib/format';
 import { getDict, getLang } from '@/lib/i18n';
-import StatusSelect from './StatusSelect';
+import StatusSelect from '@/components/StatusSelect';
 import { getDb, mapOrderItem } from '@/lib/db';
 
 interface OrderRow {

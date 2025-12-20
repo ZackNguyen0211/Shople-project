@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import ImageUploader from '../../../../components/ImageUploader';
 
@@ -14,8 +14,10 @@ export default function NewProductForm({
   lang?: 'vi' | 'en';
 }) {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [images, setImages] = useState<string[]>([]);
+  const [uploadKey, setUploadKey] = useState(0);
   const defaultShopId = shops.length === 1 ? shops[0].id : shops[0]?.id || 0;
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -40,8 +42,11 @@ export default function NewProductForm({
     });
     if (res.ok) {
       setMsg(lang === 'en' ? 'Product created' : 'Thêm sản phẩm thành công');
-      e.currentTarget.reset();
+      if (formRef.current) {
+        formRef.current.reset();
+      }
       setImages([]);
+      setUploadKey((prev) => prev + 1);
       router.refresh();
       setTimeout(() => setMsg(null), 1200);
     } else {
@@ -51,7 +56,7 @@ export default function NewProductForm({
   }
 
   return (
-    <form onSubmit={onSubmit} style={{ display: 'grid', gap: 12 }}>
+    <form ref={formRef} onSubmit={onSubmit} style={{ display: 'grid', gap: 12 }}>
       {msg ? (
         <p
           className="muted"
@@ -78,6 +83,7 @@ export default function NewProductForm({
         <textarea className="input" name="description" />
       </label>
       <ImageUploader
+        key={uploadKey}
         label={lang === 'en' ? 'Images' : 'Ảnh sản phẩm'}
         initialUrls={[]}
         onChange={setImages}

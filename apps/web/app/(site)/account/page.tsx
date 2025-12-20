@@ -1,6 +1,6 @@
 import { getCurrentUser } from '../../../lib/auth';
 import { getLang } from '../../../lib/i18n';
-import LoginRequired from '../LoginRequired';
+import LoginRequired from '@/components/LoginRequired';
 import AvatarUpload from './AvatarUpload';
 import ShopCTA from './ShopCTA';
 

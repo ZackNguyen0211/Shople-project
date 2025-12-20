@@ -26,13 +26,7 @@ export default async function ProductPage({ params }: Params) {
   }
   const product = mapProduct(productRow);
   const shopRow = product.shopId
-    ? (
-        await supabase
-          .from('shops')
-          .select('id,name')
-          .eq('id', product.shopId)
-          .maybeSingle()
-      ).data
+    ? (await supabase.from('shops').select('id,name').eq('id', product.shopId).maybeSingle()).data
     : null;
   const shop = shopRow ? mapShop(shopRow) : null;
   const t = getDict(getLang());
@@ -41,9 +35,10 @@ export default async function ProductPage({ params }: Params) {
     .select('url,sort_order')
     .eq('product_id', id)
     .order('sort_order', { ascending: true });
-  const images = (Array.isArray(imageRows) && imageRows.length > 0)
-    ? imageRows.map((im) => mapProductImage(im).url)
-    : [product?.imageUrl || '/placeholder-product.png'];
+  const images =
+    Array.isArray(imageRows) && imageRows.length > 0
+      ? imageRows.map((im) => mapProductImage(im).url)
+      : [product?.imageUrl || '/placeholder-product.png'];
 
   return (
     <div className="product-page">
@@ -51,17 +46,22 @@ export default async function ProductPage({ params }: Params) {
         <ProductGallery images={images} title={product.title} />
       </div>
       <div className="product-info card">
-        <h1 className="page-title" style={{ marginBottom: 4 }}>{product.title}</h1>
+        <h1 className="page-title" style={{ marginBottom: 4 }}>
+          {product.title}
+        </h1>
         {shop ? (
           <div className="muted" style={{ marginBottom: 8 }}>
-            {t.product.soldBy} <Link href={`/shop/${shop.id}` as Route}>{shop.name}</Link>
+            {t.product.soldBy}{' '}
+            <Link href={`/shop-management/${shop.id}` as Route}>{shop.name}</Link>
           </div>
         ) : null}
         <div className="product-price-block">
           <div className="product-price">{formatVND(product.price)}</div>
         </div>
         {product.description ? (
-          <p className="muted" style={{ marginTop: 8, whiteSpace: 'pre-wrap' }}>{product.description}</p>
+          <p className="muted" style={{ marginTop: 8, whiteSpace: 'pre-wrap' }}>
+            {product.description}
+          </p>
         ) : null}
         <ProductActions productId={product.id} addLabel={t.product.addToCart} />
       </div>

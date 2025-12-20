@@ -7,7 +7,10 @@ import { getDb, mapShop } from '../../../lib/db';
 
 export default async function ShopsPage() {
   const supabase = getDb();
-  const { data, error } = await supabase.from('shops').select('id,name').order('id', { ascending: true });
+  const { data, error } = await supabase
+    .from('shops')
+    .select('id,name')
+    .order('id', { ascending: true });
   if (error) {
     throw new Error('Failed to load shops');
   }
@@ -19,7 +22,7 @@ export default async function ShopsPage() {
       <h1 className="page-title">{t.shopsList.title}</h1>
       <div className="card-grid">
         {shops.map((shop) => (
-          <Link key={shop.id} className="card" href={`/shop/${shop.id}` as Route}>
+          <Link key={shop.id} className="card" href={`/shop-management/${shop.id}` as Route}>
             <div style={{ display: 'grid', gap: 6 }}>
               <div style={{ fontWeight: 700 }}>{shop.name}</div>
               <div className="muted">{t.shopsList.viewProducts}</div>

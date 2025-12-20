@@ -8,10 +8,17 @@ const AUTH_COOKIE =
 const PUBLIC_PATHS = ['/login', '/register'];
 
 // Paths that require authentication (redirect to login if not authenticated)
-const PROTECTED_PATHS = ['/account', '/cart', '/checkout', '/orders', '/shop/manage', '/admin'];
+const PROTECTED_PATHS = [
+  '/account',
+  '/cart',
+  '/checkout',
+  '/orders',
+  '/shop-management/manage',
+  '/admin',
+];
 
 // Paths that are public (accessible without authentication)
-const ALLOWED_PUBLIC_PATHS = ['/', '/product', '/search', '/shops'];
+const ALLOWED_PUBLIC_PATHS = ['/', '/product', '/search', '/shop-lists'];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

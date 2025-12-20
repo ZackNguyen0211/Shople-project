@@ -1,20 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { cookies } from 'next/headers';
 import { getAuthCookieName, verifyAuthToken } from '../../../lib/auth';
 import { getDb, mapShop } from '../../../lib/db';
 
 export async function GET() {
+  const token = cookies().get(getAuthCookieName())?.value;
+  const current = token ? verifyAuthToken(token) : null;
+  if (!current) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   const supabase = getDb();
-  const { data, error } = await supabase
-    .from('shops')
-    .select('id,name,owner_id')
-    .order('id', { ascending: true })
-    .limit(50);
+  const query = supabase.from('shops').select('id,name,owner_id').order('id', { ascending: true });
+
+  const { data, error } = await (current.role === 'ADMIN'
+    ? query.limit(50)
+    : query.eq('owner_id', current.id).limit(5));
+
   if (error) {
     return NextResponse.json({ error: 'Failed to load shops' }, { status: 500 });
   }
+
   const response = NextResponse.json((data || []).map(mapShop));
-  response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+  response.headers.set('Cache-Control', 'private, max-age=0, must-revalidate');
   return response;
 }
 

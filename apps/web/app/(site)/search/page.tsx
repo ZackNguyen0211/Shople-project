@@ -23,21 +23,16 @@ export default async function SearchPage({ searchParams }: { searchParams: { q?:
   const products: Product[] = (productRows || []).map(mapProduct);
   const shopIds = Array.from(new Set(products.map((p) => p.shopId).filter(Boolean))) as number[];
   const shops: Shop[] = shopIds.length
-    ? (
-        (
-          await supabase
-            .from('shops')
-            .select('id,name')
-            .in('id', shopIds)
-        ).data || []
-      ).map(mapShop)
+    ? ((await supabase.from('shops').select('id,name').in('id', shopIds)).data || []).map(mapShop)
     : [];
   const shopMap = new Map(shops.map((s) => [s.id, s.name]));
 
   const t = getDict(getLang());
   return (
     <div>
-      <h1 className="page-title">{t.searchPage.title}: {q}</h1>
+      <h1 className="page-title">
+        {t.searchPage.title}: {q}
+      </h1>
       <div className="card-grid">
         {products.map((product) => (
           <div key={product.id} className="card">
@@ -55,7 +50,9 @@ export default async function SearchPage({ searchParams }: { searchParams: { q?:
             </Link>
             {product.shopId ? (
               <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>
-                <Link href={`/shop/${product.shopId}` as Route}>{shopMap.get(product.shopId) || 'Shop'}</Link>
+                <Link href={`/shop-management/${product.shopId}` as Route}>
+                  {shopMap.get(product.shopId) || 'Shop'}
+                </Link>
               </div>
             ) : null}
           </div>

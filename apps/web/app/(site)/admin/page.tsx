@@ -6,7 +6,7 @@ import { getCurrentUser } from '../../../lib/auth';
 import { getDict, getLang } from '../../../lib/i18n';
 import { getDb, mapOrderItem } from '../../../lib/db';
 import AdminDashboard from './AdminDashboard';
-import ShopRequestActions from './ShopRequestActions';
+import ShopRequestActions from '@/components/admin/ShopRequestActions';
 
 export default async function AdminPage() {
   const user = getCurrentUser();

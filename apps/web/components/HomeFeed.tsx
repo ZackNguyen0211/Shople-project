@@ -1,8 +1,8 @@
-"use client";
+'use client';
 import { useState } from 'react';
 import Link from 'next/link';
 import type { Route } from 'next';
-import { formatVND } from '../../lib/format';
+import { formatVND } from '@/lib/format';
 
 type Item = {
   id: number;
@@ -15,7 +15,15 @@ type Item = {
 
 type Labels = { by: string; more: string; loading: string };
 
-export default function HomeFeed({ initial, total, labels }: { initial: Item[]; total: number; labels: Labels }) {
+export default function HomeFeed({
+  initial,
+  total,
+  labels,
+}: {
+  initial: Item[];
+  total: number;
+  labels: Labels;
+}) {
   const [items, setItems] = useState<Item[]>(initial);
   const [loading, setLoading] = useState(false);
 
@@ -50,7 +58,10 @@ export default function HomeFeed({ initial, total, labels }: { initial: Item[]; 
             </Link>
             {product.shop ? (
               <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>
-                {labels.by} <Link href={`/shop/${product.shop.id}` as Route}>{product.shop.name}</Link>
+                {labels.by}{' '}
+                <Link href={`/shop-management/${product.shop.id}` as Route}>
+                  {product.shop.name}
+                </Link>
               </div>
             ) : null}
           </div>

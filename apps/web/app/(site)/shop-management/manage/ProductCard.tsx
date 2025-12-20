@@ -101,7 +101,7 @@ export default function ProductCard({
         </div>
         <Link
           className="btn-outline"
-          href={`/shop/manage/products/${id}`}
+          href={`/shop-management/manage/products/${id}`}
           style={{
             display: 'block',
             textAlign: 'center',

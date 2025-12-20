@@ -3,8 +3,8 @@ import { getCurrentUser } from '../../../../lib/auth';
 import { formatVND } from '../../../../lib/format';
 import { getDict, getLang } from '../../../../lib/i18n';
 import { getDb, mapProduct } from '../../../../lib/db';
-import LoginRequired from '../../LoginRequired';
-import InvoiceActions from './InvoiceActions';
+import LoginRequired from '@/components/LoginRequired';
+import InvoiceActions from '@/components/InvoiceActions';
 
 export const dynamic = 'force-dynamic';
 
