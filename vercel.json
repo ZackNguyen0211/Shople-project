@@ -2,16 +2,6 @@
   "version": 2,
   "buildCommand": "npm run build",
   "installCommand": "npm ci",
-  "env": {
-    "DATABASE_URL": "@database_url",
-    "DIRECT_URL": "@direct_url",
-    "SUPABASE_URL": "@supabase_url",
-    "SUPABASE_SERVICE_ROLE_KEY": "@supabase_service_role_key",
-    "SUPABASE_BUCKET": "@supabase_bucket",
-    "API_JWT_SECRET": "@api_jwt_secret",
-    "API_COOKIE_NAME": "@api_cookie_name",
-    "API_JWT_EXPIRES_IN": "@api_jwt_expires_in"
-  },
   "regions": ["sin1"],
   "functions": {
     "apps/web/pages/api/**": {
