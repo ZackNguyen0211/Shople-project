@@ -60,19 +60,63 @@ export default async function ShopManagePage({
     (s: { id: number; name: string; verified: boolean }) => s.verified === true
   );
   if (!anyVerified) {
-    return (
-      <div className="card" style={{ padding: 20 }}>
-        <h1 className="page-title" style={{ marginBottom: 8 }}>
-          {t.shopManage.title}
-        </h1>
-        <p className="muted">Shop của bạn đang chờ xác thực. Vui lòng đợi admin approve.</p>
-        <div style={{ marginTop: 16 }}>
-          <a href="/shop/request" className="btn-outline">
-            Gửi yêu cầu xác thực lại
-          </a>
-        </div>
-      </div>
+    // Get the shop name of first unverified shop
+    const currentShop = myShops.find(
+      (s: { id: number; name: string; verified: boolean }) => !s.verified
     );
+
+    if (!currentShop) {
+      return (
+        <div className="card" style={{ padding: 20 }}>
+          <h1 className="page-title">{t.shopManage.title}</h1>
+          <p className="muted">Không có shop nào để quản lý.</p>
+        </div>
+      );
+    }
+
+    // Check if there's a pending request for the current shop
+    const { data: pendingRequests } = await supabase
+      .from('shop_requests')
+      .select('id')
+      .eq('requester_id', me.id)
+      .eq('shop_name', currentShop.name)
+      .eq('status', 'PENDING')
+      .limit(1);
+
+    const hasPendingRequest = (pendingRequests || []).length > 0;
+
+    if (hasPendingRequest) {
+      return (
+        <div className="card" style={{ padding: 20 }}>
+          <h1 className="page-title" style={{ marginBottom: 8 }}>
+            {t.shopManage.title}
+          </h1>
+          <p className="muted">Shop của bạn đang chờ xác thực. Vui lòng đợi admin approve.</p>
+          <div style={{ marginTop: 16 }}>
+            <a href="/shop/request" className="btn-outline">
+              Gửi yêu cầu xác thực lại
+            </a>
+          </div>
+        </div>
+      );
+    } else {
+      // No verified shop and no pending request - need to submit
+      return (
+        <div className="card" style={{ padding: 20 }}>
+          <h1 className="page-title" style={{ marginBottom: 8 }}>
+            {t.shopManage.title}
+          </h1>
+          <p className="muted">
+            Shop của bạn chưa được xác thực. Vui lòng gửi yêu cầu xác thực để bắt đầu.
+          </p>
+          <div style={{ marginTop: 16 }}>
+            <a href="/shop/request" className="btn">
+              Gửi yêu cầu xác thực
+            </a>
+          </div>
+        </div>
+      );
+    }
   }
 
   const [invoicesRes, productsRes] = await Promise.all([

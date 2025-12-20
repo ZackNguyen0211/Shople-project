@@ -40,6 +40,6 @@ export async function POST(req: NextRequest, { params }: Params) {
     console.warn('Failed to insert notification', e);
   }
 
-  // Redirect back to admin dashboard after successful rejection
-  return NextResponse.redirect(new URL('/admin', req.url));
+  // Return success response for client to handle redirect
+  return NextResponse.json({ ok: true, message: 'Shop request rejected' });
 }

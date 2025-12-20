@@ -6,6 +6,7 @@ import LanguageSwitcher from './LanguageSwitcher';
 import NotificationBell from './NotificationBell';
 import SearchBar from './SearchBar';
 import UserAvatar from './UserAvatar';
+import CartIcon from './CartIcon';
 
 export default function SiteLayout({ children }: { children: ReactNode }) {
   const user = getCurrentUser();
@@ -60,13 +61,7 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
             <SearchBar placeholder={t.search.placeholder} buttonLabel={t.search.button} />
           </div>
           <div className="header-actions">
-            <Link href="/cart" className="iconbtn" aria-label={t.nav.cart}>
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true">
-                <path d="M3 3h2l2 12h10l2-8H6" stroke="currentColor" strokeWidth="1.6" />
-                <circle cx="9" cy="20" r="1.6" fill="currentColor" />
-                <circle cx="17" cy="20" r="1.6" fill="currentColor" />
-              </svg>
-            </Link>
+            <CartIcon label={t.nav.cart} />
           </div>
         </div>
       </header>

@@ -86,18 +86,16 @@ export async function POST(req: NextRequest) {
       return redirectWithError('Registration failed, please try again');
     }
 
-    // Optionally auto-create a verification request (pending)
+    // Auto-create verification request
     try {
-      await supabase
-        .from('shop_requests')
-        .insert({
-          requester_id: user.id,
-          shop_name: shopName,
-          shop_owner_email: email,
-          status: 'PENDING',
-        });
+      await supabase.from('shop_requests').insert({
+        requester_id: user.id,
+        shop_name: shopName,
+        shop_owner_email: email,
+        status: 'PENDING',
+      });
     } catch (e) {
-      console.warn('Failed to seed verification request', e);
+      console.warn('Failed to auto-create verification request', e);
     }
 
     const token = signAuthToken({

@@ -24,6 +24,7 @@ export default function CartItemControls({
     });
     setLocalQty(qty);
     router.refresh();
+    window.dispatchEvent(new Event('cartUpdated'));
     setToast(lang === 'en' ? 'Quantity updated' : 'Đã cập nhật số lượng');
     setTimeout(() => setToast(null), 1200);
   }
@@ -41,6 +42,7 @@ export default function CartItemControls({
       body: JSON.stringify({ productId }),
     });
     router.refresh();
+    window.dispatchEvent(new Event('cartUpdated'));
     setToast(lang === 'en' ? 'Item removed' : 'Đã xóa sản phẩm');
     setTimeout(() => setToast(null), 1200);
   }

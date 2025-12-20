@@ -6,6 +6,7 @@ import { getCurrentUser } from '../../../lib/auth';
 import { getDict, getLang } from '../../../lib/i18n';
 import { getDb, mapOrderItem } from '../../../lib/db';
 import AdminDashboard from './AdminDashboard';
+import ShopRequestActions from './ShopRequestActions';
 
 export default async function AdminPage() {
   const user = getCurrentUser();
@@ -218,17 +219,8 @@ export default async function AdminPage() {
                   <td>{r.shopOwnerEmail}</td>
                   <td>{r.requesterId}</td>
                   <td>{new Date(r.createdAt).toLocaleString('vi-VN')}</td>
-                  <td style={{ display: 'flex', gap: 8 }}>
-                    <form action={`/api/shops/requests/${r.id}/approve` as Route} method="post">
-                      <button className="btn" type="submit">
-                        Approve
-                      </button>
-                    </form>
-                    <form action={`/api/shops/requests/${r.id}/reject` as Route} method="post">
-                      <button className="btn-outline" type="submit">
-                        Reject
-                      </button>
-                    </form>
+                  <td>
+                    <ShopRequestActions id={r.id} />
                   </td>
                 </tr>
               ))}

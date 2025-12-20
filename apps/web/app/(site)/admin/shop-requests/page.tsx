@@ -1,7 +1,7 @@
-import type { Route } from 'next';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { getDb } from '@/lib/db';
+import ShopRequestActions from '../ShopRequestActions';
 
 export default async function AdminShopRequestsPage() {
   const user = getCurrentUser();
@@ -47,22 +47,7 @@ export default async function AdminShopRequestsPage() {
                 <td>{r.shopOwnerEmail}</td>
                 <td>{r.requesterId}</td>
                 <td>{r.status}</td>
-                <td style={{ display: 'flex', gap: 8 }}>
-                  {r.status === 'PENDING' ? (
-                    <>
-                      <form action={`/api/shops/requests/${r.id}/approve` as Route} method="post">
-                        <button className="btn" type="submit">
-                          Approve
-                        </button>
-                      </form>
-                      <form action={`/api/shops/requests/${r.id}/reject` as Route} method="post">
-                        <button className="btn-outline" type="submit">
-                          Reject
-                        </button>
-                      </form>
-                    </>
-                  ) : null}
-                </td>
+                <td>{r.status === 'PENDING' ? <ShopRequestActions id={r.id} /> : null}</td>
               </tr>
             ))}
           </tbody>

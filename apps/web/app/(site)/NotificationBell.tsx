@@ -14,6 +14,7 @@ export default function NotificationBell() {
   const [items, setItems] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const ref = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -24,6 +25,32 @@ export default function NotificationBell() {
     if (open) document.addEventListener('mousedown', onDocClick);
     return () => document.removeEventListener('mousedown', onDocClick);
   }, [open]);
+
+  // Load unread count on mount
+  const loadUnreadCount = useCallback(async () => {
+    try {
+      const res = await fetch('/api/notifications/count');
+      if (res.ok) {
+        const data = await res.json();
+        setUnreadCount(data.count || 0);
+      }
+    } catch (e) {
+      console.warn('Failed to load unread count', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadUnreadCount();
+  }, [loadUnreadCount]);
+
+  // Listen for notification updates
+  useEffect(() => {
+    const handleNotificationUpdate = () => {
+      loadUnreadCount();
+    };
+    window.addEventListener('notificationUpdated', handleNotificationUpdate);
+    return () => window.removeEventListener('notificationUpdated', handleNotificationUpdate);
+  }, [loadUnreadCount]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -52,12 +79,12 @@ export default function NotificationBell() {
         body: JSON.stringify({ action: 'markAllRead' }),
       });
       await load();
+      await loadUnreadCount();
+      window.dispatchEvent(new Event('notificationUpdated'));
     } catch (e) {
       console.warn('Failed to mark notifications read', e);
     }
   }
-
-  const unreadCount = items.filter((n) => !n.isRead).length;
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
