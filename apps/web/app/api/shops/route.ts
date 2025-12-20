@@ -13,7 +13,9 @@ export async function GET() {
   if (error) {
     return NextResponse.json({ error: 'Failed to load shops' }, { status: 500 });
   }
-  return NextResponse.json((data || []).map(mapShop));
+  const response = NextResponse.json((data || []).map(mapShop));
+  response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+  return response;
 }
 
 // Creation of shops should be an admin action only (via approval flow)
@@ -25,7 +27,8 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const name = String(body?.name || '').trim();
   const ownerId = Number(body?.ownerId);
-  if (!name || !Number.isFinite(ownerId)) return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
+  if (!name || !Number.isFinite(ownerId))
+    return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
   const supabase = getDb();
   const { data: shop, error } = await supabase
     .from('shops')

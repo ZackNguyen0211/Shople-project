@@ -44,8 +44,11 @@ export async function GET(req: NextRequest) {
   });
   const total = includeTotal ? count || 0 : 0;
 
-  if (includeTotal) return NextResponse.json({ items, total });
-  return NextResponse.json(items);
+  const response = includeTotal ? NextResponse.json({ items, total }) : NextResponse.json(items);
+
+  // Cache product list for 1 minute, allow stale cache for 5 minutes
+  response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+  return response;
 }
 
 export async function POST(req: NextRequest) {

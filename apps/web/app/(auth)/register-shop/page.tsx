@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { getClientDict } from '../../../lib/i18n-client';
 
 export default function RegisterShopPage({
@@ -9,6 +9,21 @@ export default function RegisterShopPage({
 }) {
   const error = searchParams?.error;
   const next = searchParams?.next || '/shop/manage';
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    // Check if user is logged in by fetching /api/auth/me
+    fetch('/api/auth/me')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.user) {
+          setIsLoggedIn(true);
+        }
+      })
+      .catch(() => {
+        // Not logged in or error
+      });
+  }, []);
 
   function calcStrength(pw: string) {
     let score = 0;
@@ -77,12 +92,18 @@ export default function RegisterShopPage({
         <button type="submit" className="btn">
           {t.auth.signup}
         </button>
-        <a
-          href={next ? `/login?next=${encodeURIComponent(next)}` : '/login'}
-          style={{ color: 'var(--primary)' }}
-        >
-          {t.auth.loginPrompt}
-        </a>
+        {!isLoggedIn ? (
+          <a
+            href={next ? `/login?next=${encodeURIComponent(next)}` : '/login'}
+            style={{ color: 'var(--primary)' }}
+          >
+            {t.auth.loginPrompt}
+          </a>
+        ) : (
+          <a href="/" style={{ color: 'var(--primary)' }}>
+            ← Quay lại trang chủ
+          </a>
+        )}
       </form>
     </div>
   );
