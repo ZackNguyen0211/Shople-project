@@ -14,8 +14,8 @@ export default async function AdminPage() {
   }
 
   const supabase = getDb();
-  const [usersCountRes, shopsCountRes, productsCountRes, ordersRes, revenueRes] = await Promise.all(
-    [
+  const [usersCountRes, shopsCountRes, productsCountRes, ordersRes, revenueRes, requestsRes] =
+    await Promise.all([
       supabase.from('users').select('id', { count: 'exact', head: true }),
       supabase.from('shops').select('id', { count: 'exact', head: true }),
       supabase.from('products').select('id', { count: 'exact', head: true }),
@@ -24,8 +24,13 @@ export default async function AdminPage() {
         .select('id,status,created_at,items:order_items(id,product_id,price,quantity),total_cents')
         .order('created_at', { ascending: false }),
       supabase.from('orders').select('total_cents').eq('status', 'PAID'),
-    ]
-  );
+      supabase
+        .from('shop_requests')
+        .select('id,shop_name,shop_owner_email,requester_id,status,created_at')
+        .eq('status', 'PENDING')
+        .order('created_at', { ascending: false })
+        .limit(10),
+    ]);
 
   const usersCount = usersCountRes.count || 0;
   const shopsCount = shopsCountRes.count || 0;
@@ -38,6 +43,14 @@ export default async function AdminPage() {
     total_cents: row.total_cents || 0,
   }));
   const revenueVnd = (revenueRes.data || []).reduce((sum, row) => sum + (row.total_cents || 0), 0);
+  const pendingRequests = (requestsRes.data || []).map((row) => ({
+    id: row.id,
+    shopName: row.shop_name,
+    shopOwnerEmail: row.shop_owner_email,
+    requesterId: row.requester_id,
+    status: row.status,
+    createdAt: row.created_at,
+  }));
 
   const lang = getLang();
   const t = getDict(lang);
@@ -153,6 +166,75 @@ export default async function AdminPage() {
         >
           📋 {t.adminButtons.orders}
         </Link>
+        <Link
+          className="btn"
+          href={`/admin/shop-requests` as Route}
+          style={{
+            background: 'linear-gradient(135deg, #22644d 0%, #184838 100%)',
+            color: 'white',
+            textDecoration: 'none',
+            padding: '12px 24px',
+            borderRadius: 8,
+            fontWeight: 500,
+            fontSize: 14,
+            border: 'none',
+            cursor: 'pointer',
+            display: 'inline-block',
+          }}
+        >
+          ✅ Pending Requests
+        </Link>
+      </div>
+
+      {/* Pending Shop Verification Requests */}
+      <div className="card" style={{ marginTop: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Pending Shop Verification</h2>
+          <Link href={`/admin/shop-requests` as Route} className="btn-outline">
+            View all
+          </Link>
+        </div>
+        {pendingRequests.length === 0 ? (
+          <p className="muted" style={{ marginTop: 8 }}>
+            No pending requests.
+          </p>
+        ) : (
+          <table className="table" style={{ marginTop: 12 }}>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Shop</th>
+                <th>Owner Email</th>
+                <th>Requester</th>
+                <th>Created</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {pendingRequests.map((r) => (
+                <tr key={r.id}>
+                  <td>#{r.id}</td>
+                  <td>{r.shopName}</td>
+                  <td>{r.shopOwnerEmail}</td>
+                  <td>{r.requesterId}</td>
+                  <td>{new Date(r.createdAt).toLocaleString('vi-VN')}</td>
+                  <td style={{ display: 'flex', gap: 8 }}>
+                    <form action={`/api/shops/requests/${r.id}/approve` as Route} method="post">
+                      <button className="btn" type="submit">
+                        Approve
+                      </button>
+                    </form>
+                    <form action={`/api/shops/requests/${r.id}/reject` as Route} method="post">
+                      <button className="btn-outline" type="submit">
+                        Reject
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

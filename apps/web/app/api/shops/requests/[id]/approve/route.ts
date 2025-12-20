@@ -14,7 +14,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   const supabase = getDb();
   const { data: request, error: requestError } = await supabase
     .from('shop_requests')
-    .select('id,shop_name,shop_owner_email,status')
+    .select('id,shop_name,shop_owner_email,status,requester_id')
     .eq('id', id)
     .maybeSingle();
   if (requestError || !request || request.status !== 'PENDING') {
@@ -57,13 +57,19 @@ export async function POST(req: NextRequest, { params }: Params) {
   if (updateRequestError) {
     return NextResponse.json({ error: 'Failed to update request' }, { status: 500 });
   }
-  return NextResponse.json({
-    ok: true,
-    shop: {
-      id: verifiedShop.id,
-      name: verifiedShop.name,
-      ownerId: verifiedShop.owner_id,
-      verified: verifiedShop.verified,
-    },
-  });
+
+  // Create a notification for the requester
+  try {
+    await supabase.from('notifications').insert({
+      user_id: request.requester_id,
+      title: 'Shop verification approved',
+      body: `Congratulations! Your shop "${request.shop_name}" has been verified. You can now manage your shop.`,
+      is_read: false,
+    });
+  } catch (e) {
+    console.warn('Failed to insert notification', e);
+  }
+
+  // Redirect back to admin dashboard after successful approval
+  return NextResponse.redirect(new URL('/admin', req.url));
 }

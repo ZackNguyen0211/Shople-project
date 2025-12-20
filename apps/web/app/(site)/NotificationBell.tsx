@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 type Notification = {
   id: number;
@@ -13,6 +13,7 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -24,22 +25,24 @@ export default function NotificationBell() {
     return () => document.removeEventListener('mousedown', onDocClick);
   }, [open]);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch('/api/notifications');
       const data = await res.json();
       setItems(Array.isArray(data) ? data : []);
+      setHasLoaded(true);
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
-    load();
-    const id = setInterval(load, 30000);
-    return () => clearInterval(id);
-  }, []);
+    // Only load once when dropdown is first opened
+    if (open && !hasLoaded) {
+      load();
+    }
+  }, [open, hasLoaded, load]);
 
   async function markAllRead() {
     try {
@@ -100,11 +103,12 @@ export default function NotificationBell() {
             right: 0,
             marginTop: 6,
             background: '#fff',
-            border: '1px solid var(--border)',
+            border: '1px solid #d1d5db',
             borderRadius: 8,
-            boxShadow: '0 6px 20px rgba(0,0,0,0.08)',
-            minWidth: 260,
-            padding: 6,
+            boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+            minWidth: 320,
+            maxWidth: 380,
+            padding: 8,
             zIndex: 50,
           }}
         >
@@ -113,45 +117,60 @@ export default function NotificationBell() {
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              marginBottom: 6,
+              marginBottom: 12,
+              paddingBottom: 8,
+              borderBottom: '1px solid #e5e7eb',
             }}
           >
-            <strong style={{ fontSize: 13 }}>Notifications</strong>
+            <strong style={{ fontSize: 15, color: '#111827', fontWeight: 700 }}>Thông báo</strong>
             <button
               type="button"
               className="btn-outline"
               onClick={markAllRead}
               disabled={loading}
-              style={{ fontSize: 12, padding: '6px 8px' }}
+              style={{ fontSize: 12, padding: '6px 10px', fontWeight: 500 }}
             >
-              Mark all read
+              Đánh dấu đã đọc
             </button>
           </div>
           {loading ? (
-            <div className="muted" style={{ padding: 8, fontSize: 12 }}>
-              Loading...
+            <div style={{ padding: 12, fontSize: 13, color: '#6b7280', textAlign: 'center' }}>
+              Đang tải...
             </div>
           ) : null}
           {items.length === 0 ? (
-            <div className="muted" style={{ padding: 8, fontSize: 12 }}>
-              No notifications
+            <div style={{ padding: 16, fontSize: 13, color: '#9ca3af', textAlign: 'center' }}>
+              Không có thông báo
             </div>
           ) : (
-            <div style={{ display: 'grid', gap: 6 }}>
+            <div style={{ display: 'grid', gap: 8, maxHeight: 400, overflowY: 'auto' }}>
               {items.map((n) => (
                 <div
                   key={n.id}
                   style={{
-                    padding: 8,
+                    padding: 12,
                     borderRadius: 8,
                     border: '1px solid #e5e7eb',
-                    background: n.isRead ? '#fafafa' : '#f0f9ff',
+                    background: n.isRead ? '#fafafa' : '#eff6ff',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.background = n.isRead ? '#f3f4f6' : '#dbeafe';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.background = n.isRead ? '#fafafa' : '#eff6ff';
                   }}
                 >
-                  <div style={{ fontWeight: 600, fontSize: 13 }}>{n.title}</div>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: '#111827', marginBottom: 4 }}>
+                    {n.title}
+                  </div>
                   {n.body ? (
-                    <div style={{ fontSize: 12 }} className="muted">
-                      {n.body}
+                    <div style={{ fontSize: 13, color: '#4b5563', lineHeight: 1.5 }}>{n.body}</div>
+                  ) : null}
+                  {n.createdAt ? (
+                    <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 6 }}>
+                      {new Date(n.createdAt).toLocaleString('vi-VN')}
                     </div>
                   ) : null}
                 </div>

@@ -33,8 +33,16 @@ export async function POST(req: NextRequest) {
   if (!current || current.role !== 'SHOP')
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = await req.json().catch(() => ({}));
-  const shopName = String(body?.shopName || '').trim();
+  // Accept both JSON and form submissions
+  const contentType = req.headers.get('content-type') || '';
+  let shopName = '';
+  if (contentType.startsWith('application/json')) {
+    const body = await req.json().catch(() => ({}));
+    shopName = String(body?.shopName || '').trim();
+  } else {
+    const form = await req.formData().catch(() => null);
+    if (form) shopName = String(form.get('shopName') || '').trim();
+  }
   if (!shopName) return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
 
   const supabase = getDb();
@@ -44,7 +52,7 @@ export async function POST(req: NextRequest) {
     .select('id,name,owner_id,verified')
     .eq('owner_id', current.id)
     .maybeSingle();
-  if (shopErr || !shopRow || shopRow.name !== shopName) {
+  if (shopErr || !shopRow) {
     return NextResponse.json({ error: 'Shop not found for requester' }, { status: 400 });
   }
 
@@ -52,7 +60,7 @@ export async function POST(req: NextRequest) {
     .from('shop_requests')
     .insert({
       requester_id: current.id,
-      shop_name: shopName,
+      shop_name: shopRow.name,
       shop_owner_email: current.email,
       status: 'PENDING',
     })

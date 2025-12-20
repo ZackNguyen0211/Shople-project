@@ -39,5 +39,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   } catch (e) {
     console.warn('Failed to insert notification', e);
   }
-  return NextResponse.json({ ok: true });
+
+  // Redirect back to admin dashboard after successful rejection
+  return NextResponse.redirect(new URL('/admin', req.url));
 }
