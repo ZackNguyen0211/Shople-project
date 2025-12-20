@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { getCurrentUser } from '../../lib/auth';
 import { getDict, getLang } from '../../lib/i18n';
 import LanguageSwitcher from './LanguageSwitcher';
+import NotificationBell from './NotificationBell';
 import SearchBar from './SearchBar';
 import UserAvatar from './UserAvatar';
 
@@ -32,8 +33,9 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
               </>
             ) : null}
           </nav>
-          <div className="top-actions">
+          <div className="top-actions" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <LanguageSwitcher value={lang} />
+            <NotificationBell />
             {user ? (
               <UserAvatar
                 name={user.name}

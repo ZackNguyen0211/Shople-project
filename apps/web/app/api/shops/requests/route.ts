@@ -6,7 +6,8 @@ export async function GET(req: NextRequest) {
   // Admin list (optional usage)
   const token = req.cookies.get(getAuthCookieName())?.value;
   const current = token ? verifyAuthToken(token) : null;
-  if (!current || current.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!current || current.role !== 'ADMIN')
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const supabase = getDb();
   const { data, error } = await supabase
     .from('shop_requests')
@@ -29,20 +30,31 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const token = req.cookies.get(getAuthCookieName())?.value;
   const current = token ? verifyAuthToken(token) : null;
-  if (!current) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!current || current.role !== 'SHOP')
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await req.json().catch(() => ({}));
   const shopName = String(body?.shopName || '').trim();
-  const shopOwnerEmail = String(body?.shopOwnerEmail || '').trim().toLowerCase();
-  if (!shopName || !shopOwnerEmail) return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
+  if (!shopName) return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
 
   const supabase = getDb();
+  // Ensure the requester actually owns a shop
+  const { data: shopRow, error: shopErr } = await supabase
+    .from('shops')
+    .select('id,name,owner_id,verified')
+    .eq('owner_id', current.id)
+    .maybeSingle();
+  if (shopErr || !shopRow || shopRow.name !== shopName) {
+    return NextResponse.json({ error: 'Shop not found for requester' }, { status: 400 });
+  }
+
   const { data: saved, error } = await supabase
     .from('shop_requests')
     .insert({
       requester_id: current.id,
       shop_name: shopName,
-      shop_owner_email: shopOwnerEmail,
+      shop_owner_email: current.email,
+      status: 'PENDING',
     })
     .select('id,requester_id,shop_name,shop_owner_email,status,created_at')
     .single();

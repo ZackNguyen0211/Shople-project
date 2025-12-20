@@ -35,12 +35,13 @@ export default async function ShopManagePage({
   const supabase = getDb();
   const { data: myShopsData, error: shopsError } = await supabase
     .from('shops')
-    .select('id,name')
+    .select('id,name,verified')
     .eq('owner_id', me.id);
   if (shopsError) {
     throw new Error('Failed to load shops');
   }
-  const myShops = myShopsData || [];
+  const myShops =
+    (myShopsData as unknown as { id: number; name: string; verified: boolean }[]) || [];
   const shopIds = myShops.map((s) => s.id);
   const lang = getLang();
   const t = getDict(lang);
@@ -51,6 +52,25 @@ export default async function ShopManagePage({
         <h1 className="page-title">{t.shopManage.title}</h1>
         <p className="muted">Bạn chưa có shop nào.</p>
         <NewShopForm />
+      </div>
+    );
+  }
+
+  const anyVerified = myShops.some(
+    (s: { id: number; name: string; verified: boolean }) => s.verified === true
+  );
+  if (!anyVerified) {
+    return (
+      <div className="card" style={{ padding: 20 }}>
+        <h1 className="page-title" style={{ marginBottom: 8 }}>
+          {t.shopManage.title}
+        </h1>
+        <p className="muted">Shop của bạn đang chờ xác thực. Vui lòng đợi admin approve.</p>
+        <div style={{ marginTop: 16 }}>
+          <a href="/shop/request" className="btn-outline">
+            Gửi yêu cầu xác thực lại
+          </a>
+        </div>
       </div>
     );
   }
@@ -150,7 +170,7 @@ export default async function ShopManagePage({
                 border: '2px solid #e2e8f0',
               }}
             >
-              {s.name}
+              {s.name} {s.verified ? '' : '(Chưa xác thực)'}
             </div>
           ))}
         </div>

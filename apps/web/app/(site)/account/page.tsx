@@ -174,7 +174,7 @@ export default async function AccountPage() {
               : 'Muốn mở cửa hàng của riêng bạn? Gửi yêu cầu và đội của chúng tôi sẽ xem xét.'}
           </p>
           <a
-            href="/shop/request"
+            href="/register-shop"
             style={{
               display: 'inline-block',
               padding: '10px 20px',
