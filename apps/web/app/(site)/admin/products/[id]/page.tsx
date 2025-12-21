@@ -212,7 +212,7 @@ export default function AdminEditProductPage() {
             <div style={{ marginBottom: 8 }}>
               <span style={{ fontWeight: 600, fontSize: 14 }}>Hình ảnh</span>
             </div>
-            <ImageUploader label="" initialUrls={images} onChange={setImages} />
+            <ImageUploader label="" initialUrls={images} />
           </div>
 
           {/* Action Buttons */}

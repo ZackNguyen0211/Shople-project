@@ -86,7 +86,6 @@ export default function NewProductForm({
         key={uploadKey}
         label={lang === 'en' ? 'Images' : 'Ảnh sản phẩm'}
         initialUrls={[]}
-        onChange={setImages}
       />
       {shops.length > 1 && (
         <label style={{ display: 'grid', gap: 4 }}>

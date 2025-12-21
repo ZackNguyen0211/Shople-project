@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 
 import { getCurrentUser } from '../../../lib/auth';
 import { getDict, getLang } from '../../../lib/i18n';
-import { getDb, mapOrderItem } from '../../../lib/db';
+import { getDb } from '../../../lib/db';
 import AdminDashboard from './AdminDashboard';
 import ShopRequestActions from '@/components/admin/ShopRequestActions';
 
@@ -40,12 +40,14 @@ export default async function AdminPage() {
     id: row.order_id,
     status: 'PAID', // Invoices are created only after successful payment
     created_at: row.created_at,
-    items: (row.payload?.items || []).map((item: any) => ({
-      id: item.product?.id,
-      productId: item.product?.id,
-      price: item.product?.price || 0,
-      quantity: item.quantity || 0,
-    })),
+    items: (row.payload?.items || []).map(
+      (item: { product?: { id: number; price: number }; quantity: number }) => ({
+        id: item.product?.id,
+        productId: item.product?.id,
+        price: item.product?.price || 0,
+        quantity: item.quantity || 0,
+      })
+    ),
     total_cents: row.total || 0,
   }));
   const revenueVnd = (invoicesRes.data || []).reduce((sum, row) => sum + (row.total || 0), 0);

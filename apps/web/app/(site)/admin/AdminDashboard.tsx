@@ -56,7 +56,6 @@ export default function AdminDashboard({
   // Note: All invoices are PAID (created only after successful payment)
   const totalOrders = orders.length;
   const completedOrders = orders.length; // All invoices = completed orders
-  const pendingOrders = 0; // No pending invoices - only completed ones
   const averageOrderValue = totalOrders > 0 ? revenueVnd / totalOrders : 0;
 
   // Group orders by date for chart
