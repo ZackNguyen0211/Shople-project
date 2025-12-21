@@ -54,33 +54,6 @@ create table if not exists cart_items (
   unique (cart_id, product_id)
 );
 
-create table if not exists orders (
-  id bigserial primary key,
-  user_id bigint not null references users(id) on delete cascade,
-  shop_id bigint not null references shops(id) on delete cascade,
-  status text not null default 'PENDING' check (status in ('PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED')),
-  total_cents integer not null check (total_cents >= 0),
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-create table if not exists order_items (
-  id bigserial primary key,
-  order_id bigint not null references orders(id) on delete cascade,
-  product_id bigint not null references products(id) on delete cascade,
-  price integer not null check (price >= 0),
-  quantity integer not null check (quantity > 0)
-);
-
-create table if not exists payments (
-  id bigserial primary key,
-  order_id bigint not null unique references orders(id) on delete cascade,
-  provider text not null,
-  status text not null default 'PENDING' check (status in ('PENDING', 'COMPLETED', 'FAILED', 'REFUNDED')),
-  ref text,
-  created_at timestamptz not null default now()
-);
-
 create table if not exists invoices (
   id bigserial primary key,
   user_id bigint not null references users(id) on delete cascade,
@@ -118,10 +91,6 @@ create index if not exists idx_products_shop_id on products(shop_id);
 create index if not exists idx_products_created_at on products(created_at);
 create index if not exists idx_product_images_product_id on product_images(product_id);
 create index if not exists idx_cart_items_cart_id on cart_items(cart_id);
-create index if not exists idx_orders_user_id on orders(user_id);
-create index if not exists idx_orders_shop_id on orders(shop_id);
-create index if not exists idx_orders_status on orders(status);
-create index if not exists idx_order_items_order_id on order_items(order_id);
 create index if not exists idx_shop_requests_requester_id on shop_requests(requester_id);
 create index if not exists idx_notifications_user_id on notifications(user_id);
 create index if not exists idx_invoices_user_id on invoices(user_id);
@@ -155,11 +124,6 @@ create trigger carts_set_updated_at
 before update on carts
 for each row execute function set_updated_at();
 
-drop trigger if exists orders_set_updated_at on orders;
-create trigger orders_set_updated_at
-before update on orders
-for each row execute function set_updated_at();
-
 drop trigger if exists shop_requests_set_updated_at on shop_requests;
 create trigger shop_requests_set_updated_at
 before update on shop_requests
@@ -175,9 +139,6 @@ alter table products disable row level security;
 alter table product_images disable row level security;
 alter table carts disable row level security;
 alter table cart_items disable row level security;
-alter table orders disable row level security;
-alter table order_items disable row level security;
-alter table payments disable row level security;
 alter table shop_requests disable row level security;
 alter table notifications disable row level security;
 alter table invoices disable row level security;

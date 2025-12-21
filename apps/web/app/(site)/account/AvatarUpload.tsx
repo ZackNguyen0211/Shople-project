@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface AvatarUploadProps {
   currentAvatarUrl?: string;
@@ -22,6 +23,7 @@ export default function AvatarUpload({
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -60,9 +62,10 @@ export default function AvatarUpload({
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
+        // Refresh to update avatar with new token in cookie
         setTimeout(() => {
-          window.location.reload();
-        }, 1500);
+          router.refresh();
+        }, 1000);
       } else {
         setMessage({ type: 'error', text: data.message || uploadingError });
       }

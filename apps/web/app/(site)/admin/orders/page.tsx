@@ -2,29 +2,32 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import type { Route } from 'next';
 import { getCurrentUser } from '@/lib/auth';
-import { formatVND, statusLabel } from '@/lib/format';
+import { formatVND } from '@/lib/format';
 import { getDict, getLang } from '@/lib/i18n';
-import StatusSelect from '@/components/StatusSelect';
-import { getDb, mapOrderItem } from '@/lib/db';
+import { getDb } from '@/lib/db';
 
-interface OrderRow {
-  id: number;
-  status: string;
+interface InvoiceRow {
+  order_id: string;
   created_at?: string;
-  user: Array<{ id: number; email: string }>;
-  shop: Array<{ id: number; name: string }>;
-  items: Array<{ id: number; product_id: number; price: number; quantity: number }>;
+  total: number;
+  item_count: number;
+  payload: {
+    items?: Array<{
+      quantity?: number;
+      product?: { title?: string; price?: number };
+    }>;
+    contact?: { email?: string };
+  };
 }
 
 export default async function AdminOrdersPage({
   searchParams,
 }: {
-  searchParams: { status?: string; page?: string; sort?: string };
+  searchParams: { page?: string; sort?: string };
 }) {
   const user = getCurrentUser();
   if (!user || user.role !== 'ADMIN') redirect('/');
 
-  const status = searchParams.status?.toUpperCase();
   const page = Math.max(1, Number(searchParams.page || 1));
   const sort = searchParams.sort === 'asc' ? 'asc' : 'desc';
   const pageSize = 20;
@@ -33,28 +36,36 @@ export default async function AdminOrdersPage({
   const lang = getLang();
   const t = getDict(lang);
   const supabase = getDb();
-  let ordersQuery = supabase
-    .from('orders')
-    .select(
-      'id,status,created_at,items:order_items(id,product_id,price,quantity),user:users(id,email),shop:shops(id,name)'
-    )
+
+  // Query invoices instead of orders (invoices are paid orders)
+  const invoicesQuery = supabase
+    .from('invoices')
+    .select('order_id,created_at,total,item_count,payload')
     .order('created_at', { ascending: sort === 'asc' });
-  let countQuery = supabase.from('orders').select('id', { count: 'exact', head: true });
-  if (status) {
-    ordersQuery = ordersQuery.eq('status', status);
-    countQuery = countQuery.eq('status', status);
-  }
-  const [ordersRes, totalRes] = await Promise.all([
-    ordersQuery.range(skip, skip + pageSize - 1),
+
+  const countQuery = supabase.from('invoices').select('id', { count: 'exact', head: true });
+
+  const [invoicesRes, totalRes] = await Promise.all([
+    invoicesQuery.range(skip, skip + pageSize - 1),
     countQuery,
   ]);
-  const orders = (ordersRes.data || []).map((row: OrderRow) => ({
-    id: row.id,
-    status: row.status,
-    user: row.user?.[0] || { id: 0, email: '' },
-    shop: row.shop?.[0] || { id: 0, name: '' },
-    items: (row.items || []).map(mapOrderItem),
-  }));
+
+  const invoices = (invoicesRes.data || []).map((row: InvoiceRow) => {
+    const items = (row.payload?.items || []).map((item) => ({
+      title: item.product?.title || 'Product',
+      quantity: item.quantity || 0,
+      price: item.product?.price || 0,
+    }));
+
+    return {
+      id: row.order_id,
+      status: 'PAID', // All invoices are completed/paid
+      created_at: row.created_at,
+      total: row.total,
+      email: row.payload?.contact?.email || 'N/A',
+      items,
+    };
+  });
 
   const totalPages = Math.max(1, Math.ceil((totalRes.count || 0) / pageSize));
 
@@ -63,18 +74,6 @@ export default async function AdminOrdersPage({
       <h1 className="page-title">{t.orders.title}</h1>
 
       <form style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-        <select
-          name="status"
-          defaultValue={status || ''}
-          className="input"
-          style={{ maxWidth: 200 }}
-        >
-          <option value="">{t.filters.allStatuses}</option>
-          <option value="PENDING">PENDING</option>
-          <option value="PAID">PAID</option>
-          <option value="SHIPPED">SHIPPED</option>
-          <option value="CANCELLED">CANCELLED</option>
-        </select>
         <select name="sort" defaultValue={sort} className="input" style={{ maxWidth: 160 }}>
           <option value="desc">{t.filters.newest}</option>
           <option value="asc">{t.filters.oldest}</option>
@@ -88,48 +87,52 @@ export default async function AdminOrdersPage({
         <thead>
           <tr>
             <th>ID</th>
-            <th>{t.tables.user}</th>
-            <th>{t.tables.shop}</th>
+            <th>Email</th>
+            <th>{t.tables.items}</th>
             <th>{t.tables.status}</th>
             <th>{t.tables.total}</th>
             <th></th>
           </tr>
         </thead>
         <tbody>
-          {orders.map((o) => {
-            const total = o.items.reduce((s, it) => s + it.price * it.quantity, 0);
-            return (
-              <tr key={o.id}>
-                <td>#{o.id}</td>
-                <td>{o.user.email}</td>
-                <td>{o.shop.name}</td>
-                <td>
-                  <StatusSelect id={o.id} value={o.status} lang={lang} />
-                  <span
-                    style={{ marginLeft: 8 }}
-                    className={`badge badge--${o.status.toLowerCase()}`}
-                  >
-                    {statusLabel(o.status, lang)}
-                  </span>
-                </td>
-                <td>{formatVND(total)}</td>
-                <td>
-                  <Link className="btn-outline" href={`/orders/${o.id}` as Route}>
-                    {t.orders.view}
-                  </Link>
-                </td>
-              </tr>
-            );
-          })}
+          {invoices.map((o) => (
+            <tr key={o.id}>
+              <td>#{o.id}</td>
+              <td>{o.email}</td>
+              <td>{o.items.length}</td>
+              <td>
+                <span
+                  style={{
+                    display: 'inline-block',
+                    paddingLeft: 8,
+                    paddingRight: 8,
+                    paddingTop: 4,
+                    paddingBottom: 4,
+                    borderRadius: 6,
+                    background: '#16a34a20',
+                    color: '#16a34a',
+                    fontSize: 12,
+                    fontWeight: 600,
+                  }}
+                >
+                  ✓ {lang === 'en' ? 'Completed' : 'Hoàn Thành'}
+                </span>
+              </td>
+              <td>{formatVND(o.total)}</td>
+              <td>
+                <Link className="btn-outline" href={`/orders/${encodeURIComponent(o.id)}` as Route}>
+                  {t.orders.view}
+                </Link>
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
 
       <div className="section" style={{ display: 'flex', gap: 8 }}>
         <Link
           className="btn-outline"
-          href={
-            `?${new URLSearchParams({ status: status || '', sort, page: String(Math.max(1, page - 1)) })}` as Route
-          }
+          href={`?${new URLSearchParams({ sort, page: String(Math.max(1, page - 1)) })}` as Route}
         >
           {t.prev}
         </Link>
@@ -137,7 +140,7 @@ export default async function AdminOrdersPage({
         <Link
           className="btn-outline"
           href={
-            `?${new URLSearchParams({ status: status || '', sort, page: String(Math.min(totalPages, page + 1)) })}` as Route
+            `?${new URLSearchParams({ sort, page: String(Math.min(totalPages, page + 1)) })}` as Route
           }
         >
           {t.next}

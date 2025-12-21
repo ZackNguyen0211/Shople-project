@@ -15,16 +15,16 @@ export default async function AdminPage() {
   }
 
   const supabase = getDb();
-  const [usersCountRes, shopsCountRes, productsCountRes, ordersRes, revenueRes, requestsRes] =
+  const [usersCountRes, shopsCountRes, productsCountRes, invoicesRes, requestsRes] =
     await Promise.all([
       supabase.from('users').select('id', { count: 'exact', head: true }),
       supabase.from('shops').select('id', { count: 'exact', head: true }),
       supabase.from('products').select('id', { count: 'exact', head: true }),
       supabase
-        .from('orders')
-        .select('id,status,created_at,items:order_items(id,product_id,price,quantity),total_cents')
-        .order('created_at', { ascending: false }),
-      supabase.from('orders').select('total_cents').eq('status', 'PAID'),
+        .from('invoices')
+        .select('id,order_id,created_at,total,item_count,payload')
+        .order('created_at', { ascending: false })
+        .limit(10),
       supabase
         .from('shop_requests')
         .select('id,shop_name,shop_owner_email,requester_id,status,created_at')
@@ -36,14 +36,19 @@ export default async function AdminPage() {
   const usersCount = usersCountRes.count || 0;
   const shopsCount = shopsCountRes.count || 0;
   const productsCount = productsCountRes.count || 0;
-  const orders = (ordersRes.data || []).map((row) => ({
-    id: row.id,
-    status: row.status,
+  const orders = (invoicesRes.data || []).map((row) => ({
+    id: row.order_id,
+    status: 'PAID', // Invoices are created only after successful payment
     created_at: row.created_at,
-    items: (row.items || []).map(mapOrderItem),
-    total_cents: row.total_cents || 0,
+    items: (row.payload?.items || []).map((item: any) => ({
+      id: item.product?.id,
+      productId: item.product?.id,
+      price: item.product?.price || 0,
+      quantity: item.quantity || 0,
+    })),
+    total_cents: row.total || 0,
   }));
-  const revenueVnd = (revenueRes.data || []).reduce((sum, row) => sum + (row.total_cents || 0), 0);
+  const revenueVnd = (invoicesRes.data || []).reduce((sum, row) => sum + (row.total || 0), 0);
   const pendingRequests = (requestsRes.data || []).map((row) => ({
     id: row.id,
     shopName: row.shop_name,

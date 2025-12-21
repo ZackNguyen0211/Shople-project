@@ -110,27 +110,5 @@ cart_item as (
   insert into cart_items (cart_id, product_id, quantity)
   values ((select id from user_cart), (select id from first_product), 2)
   returning id
-),
-order_row as (
-  insert into orders (user_id, shop_id, status, total_cents)
-  values (
-    (select id from regular),
-    (select shop1_id from shop_ids),
-    'PAID',
-    (select (select price from first_product) * 2 + (select price from second_product))
-  )
-  returning id
-),
-order_items as (
-  insert into order_items (order_id, product_id, price, quantity)
-  values
-    ((select id from order_row), (select id from first_product), (select price from first_product), 2),
-    ((select id from order_row), (select id from second_product), (select price from second_product), 1)
-  returning id
-),
-payment_row as (
-  insert into payments (order_id, provider, status, ref)
-  values ((select id from order_row), 'demo', 'PAID', 'PMT-DEMO-1')
-  returning id
 )
 select 'seeded' as status;

@@ -53,10 +53,11 @@ export default function AdminDashboard({
 }: AdminDashboardProps) {
   const t = translations;
   // Calculate statistics
+  // Note: All invoices are PAID (created only after successful payment)
   const totalOrders = orders.length;
-  const completedOrders = orders.filter((o) => o.status === 'PAID').length;
-  const pendingOrders = orders.filter((o) => o.status === 'PENDING').length;
-  const averageOrderValue = totalOrders > 0 ? revenueVnd / completedOrders : 0;
+  const completedOrders = orders.length; // All invoices = completed orders
+  const pendingOrders = 0; // No pending invoices - only completed ones
+  const averageOrderValue = totalOrders > 0 ? revenueVnd / totalOrders : 0;
 
   // Group orders by date for chart
   const ordersByDate: Record<string, number> = {};
@@ -73,10 +74,8 @@ export default function AdminDashboard({
     .map(([date, count]) => ({ date, count }));
 
   // Status breakdown
-  const statusBreakdown = [
-    { status: 'PAID', count: completedOrders, color: '#16a34a' },
-    { status: 'PENDING', count: pendingOrders, color: '#f59e0b' },
-  ];
+  // All invoices are completed/paid
+  const statusBreakdown = [{ status: 'PAID', count: completedOrders, color: '#16a34a' }];
 
   return (
     <div style={{ padding: 0 }}>
@@ -201,7 +200,7 @@ export default function AdminDashboard({
           </div>
           <div style={{ fontSize: 24, fontWeight: 700, color: '#16a34a' }}>{completedOrders}</div>
           <div style={{ fontSize: 12, color: '#6b7280', marginTop: 8 }}>
-            ✓ {lang === 'en' ? 'Paid orders' : 'Đơn hàng thanh toán'}
+            ✓ {lang === 'en' ? 'All invoices are paid' : 'Tất cả hóa đơn đã thanh toán'}
           </div>
         </div>
 
@@ -209,11 +208,11 @@ export default function AdminDashboard({
           <div
             style={{ fontSize: 12, color: '#6b7280', marginBottom: 8, textTransform: 'uppercase' }}
           >
-            {lang === 'en' ? 'Pending' : 'Đang Chờ'}
+            {lang === 'en' ? 'Success Rate' : 'Tỷ Lệ Thành Công'}
           </div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: '#f59e0b' }}>{pendingOrders}</div>
+          <div style={{ fontSize: 24, fontWeight: 700, color: '#16a34a' }}>100%</div>
           <div style={{ fontSize: 12, color: '#6b7280', marginTop: 8 }}>
-            ⏱ {lang === 'en' ? 'Awaiting payment' : 'Chờ thanh toán'}
+            📊 {lang === 'en' ? 'Payment completion' : 'Hoàn thành thanh toán'}
           </div>
         </div>
 
@@ -310,7 +309,7 @@ export default function AdminDashboard({
           }}
         >
           <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 20, color: '#1f2937' }}>
-            📊 {lang === 'en' ? 'Order Status Breakdown' : 'Phân Tích Trạng Thái Đơn Hàng'}
+            📊 {lang === 'en' ? 'Invoice Summary' : 'Tóm Tắt Hóa Đơn'}
           </h2>
 
           <div
@@ -329,13 +328,7 @@ export default function AdminDashboard({
                     style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}
                   >
                     <div style={{ fontSize: 14, fontWeight: 500, color: '#374151' }}>
-                      {item.status === 'PAID'
-                        ? lang === 'en'
-                          ? '✓ Completed'
-                          : '✓ Hoàn Thành'
-                        : lang === 'en'
-                          ? '⏱ Pending'
-                          : '⏱ Đang Chờ'}
+                      {lang === 'en' ? '✓ Completed' : '✓ Hoàn Thành'}
                     </div>
                     <div style={{ fontSize: 14, fontWeight: 600, color: item.color }}>
                       {item.count}
@@ -361,7 +354,7 @@ export default function AdminDashboard({
                   </div>
 
                   <div style={{ fontSize: 12, color: '#6b7280', marginTop: 8 }}>
-                    {percentage}% {lang === 'en' ? 'of total' : 'của tổng'}
+                    {percentage}% {lang === 'en' ? 'of all invoices' : 'của tất cả hóa đơn'}
                   </div>
                 </div>
               );
@@ -460,12 +453,8 @@ export default function AdminDashboard({
             <tbody>
               {orders.map((order) => {
                 const itemCount = order.items?.length || 0;
-                const total =
-                  order.items?.reduce(
-                    (s: number, it: { price: number; quantity: number }) =>
-                      s + (it.price || 0) * (it.quantity || 0),
-                    0
-                  ) || 0;
+                // Use total_cents directly from invoice data (already calculated)
+                const total = order.total_cents || 0;
                 const date = new Date(order.created_at).toLocaleDateString(
                   lang === 'en' ? 'en-US' : 'vi-VN'
                 );

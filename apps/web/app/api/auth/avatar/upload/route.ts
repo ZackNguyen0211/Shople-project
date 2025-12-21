@@ -1,4 +1,4 @@
-import { getCurrentUser, signAuthToken } from '../../../../../lib/auth';
+import { getCurrentUser, signAuthToken, getAuthCookieName } from '../../../../../lib/auth';
 import { getDb } from '../../../../../lib/db';
 import { getSupabaseServerClient, SUPABASE_BUCKET } from '../../../../../lib/supabase';
 import { cookies } from 'next/headers';
@@ -79,7 +79,8 @@ export async function POST(request: Request) {
 
     // Update cookie with new token
     const cookieStore = await cookies();
-    cookieStore.set('authToken', token, {
+    const cookieName = getAuthCookieName();
+    cookieStore.set(cookieName, token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
