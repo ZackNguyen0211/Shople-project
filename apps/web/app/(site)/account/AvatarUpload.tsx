@@ -62,7 +62,6 @@ export default function AvatarUpload({
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
-        // Refresh to update avatar with new token in cookie
         setTimeout(() => {
           router.refresh();
         }, 1000);

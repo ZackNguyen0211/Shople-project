@@ -10,10 +10,6 @@ export function getClientIp(req: NextRequest) {
   return '0.0.0.0';
 }
 
-/**
- * Returns true if the caller has exceeded the allowed number of attempts within the window.
- * Key lets you separate buckets per endpoint (e.g., "login", "cart:post").
- */
 export function isRateLimited(req: NextRequest, key: string, max = 10, windowMs = 10 * 60 * 1000) {
   const ip = getClientIp(req);
   const now = Date.now();
@@ -24,4 +20,3 @@ export function isRateLimited(req: NextRequest, key: string, max = 10, windowMs 
   attempts.set(bucketKey, recent);
   return recent.length > max;
 }
-

@@ -8,7 +8,6 @@ import { getDict, getLang } from '../../../../lib/i18n';
 import { getDb, mapProduct } from '../../../../lib/db';
 import ProductCard from './ProductCard';
 
-// Reset TypeScript cache
 type InvoicePayloadItem = {
   id?: number;
   quantity?: number;
@@ -49,7 +48,6 @@ export default async function ShopManagePage({
     (s: { id: number; name: string; verified: boolean }) => s.verified === true
   );
   if (!anyVerified) {
-    // Get the shop name of first unverified shop
     const currentShop = myShops.find(
       (s: { id: number; name: string; verified: boolean }) => !s.verified
     );
@@ -63,7 +61,6 @@ export default async function ShopManagePage({
       );
     }
 
-    // Check if there's a pending request for the current shop
     const { data: pendingRequests } = await supabase
       .from('shop_requests')
       .select('id')
@@ -89,7 +86,6 @@ export default async function ShopManagePage({
         </div>
       );
     } else {
-      // No verified shop and no pending request - need to submit
       return (
         <div className="card" style={{ padding: 20 }}>
           <h1 className="page-title" style={{ marginBottom: 8 }}>

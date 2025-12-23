@@ -1,4 +1,3 @@
-//import DemoAutofill from './DemoAutofill';
 import { getClientDict } from '../../../lib/i18n-client';
 export default function LoginPage({
   searchParams,
@@ -27,8 +26,6 @@ export default function LoginPage({
         <button type="submit" className="btn">
           {t.auth.continue}
         </button>
-        {/* Demo autofill buttons */}
-        {/* <DemoAutofill /> */}
         <a
           href={next ? `/register?next=${encodeURIComponent(next)}` : '/register'}
           style={{ color: 'var(--primary)' }}

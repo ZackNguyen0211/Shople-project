@@ -1,4 +1,3 @@
-// Client-side i18n: read lang from document.cookie
 export type Lang = 'vi' | 'en';
 
 export function getClientLang(): Lang {
@@ -9,7 +8,6 @@ export function getClientLang(): Lang {
 }
 
 export function getClientDict(lang: Lang = getClientLang()) {
-  // Mirror structure from server i18n
   const common = {
     appName: 'Shoople',
     prev: lang === 'en' ? 'Prev' : 'Trước',

@@ -13,7 +13,7 @@ export default function RegisterPage({ searchParams }: { searchParams: { error?:
     if (/[A-Z]/.test(pw)) score++;
     if (/[0-9]/.test(pw)) score++;
     if (/[^A-Za-z0-9]/.test(pw)) score++;
-    return score; // 0-5
+    return score;
   }
 
   const [pw, setPw] = useState('');

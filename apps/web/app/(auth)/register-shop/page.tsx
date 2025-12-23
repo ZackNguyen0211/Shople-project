@@ -12,7 +12,6 @@ export default function RegisterShopPage({
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    // Check if user is logged in by fetching /api/auth/me
     fetch('/api/auth/me')
       .then((res) => res.json())
       .then((data) => {
@@ -21,7 +20,6 @@ export default function RegisterShopPage({
         }
       })
       .catch(() => {
-        // Not logged in or error
       });
   }, []);
 
@@ -32,7 +30,7 @@ export default function RegisterShopPage({
     if (/[A-Z]/.test(pw)) score++;
     if (/[0-9]/.test(pw)) score++;
     if (/[^A-Za-z0-9]/.test(pw)) score++;
-    return score; // 0-5
+    return score;
   }
 
   const [pw, setPw] = useState('');

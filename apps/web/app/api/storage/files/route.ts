@@ -10,7 +10,7 @@ import {
   SUPABASE_CONFIG_ERROR,
 } from '../../../../lib/supabase';
 
-const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_SIZE = 5 * 1024 * 1024;
 
 function unauthorized() {
   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

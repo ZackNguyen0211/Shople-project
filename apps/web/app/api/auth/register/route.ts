@@ -4,10 +4,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authCookieOptions, getAuthCookieName, signAuthToken } from '../../../../lib/auth';
 import { getDb } from '../../../../lib/db';
 
-// Simple in-memory rate limiter per IP
 const attempts = new Map<string, number[]>();
-const WINDOW_MS = 10 * 60 * 1000; // 10 minutes
-const MAX_ATTEMPTS = 5; // per window
+const WINDOW_MS = 10 * 60 * 1000;
+const MAX_ATTEMPTS = 5;
 
 function getClientIp(req: NextRequest) {
   const fwd = req.headers.get('x-forwarded-for');
@@ -34,7 +33,7 @@ function passwordStrength(pw: string) {
   if (/[A-Z]/.test(pw)) score++;
   if (/[0-9]/.test(pw)) score++;
   if (/[^A-Za-z0-9]/.test(pw)) score++;
-  return score; // 0-5
+  return score;
 }
 
 export async function POST(req: NextRequest) {
@@ -88,7 +87,6 @@ export async function POST(req: NextRequest) {
       return redirectWithError('Registration failed, please try again');
     }
     if (existing) {
-      // Return a generic error to avoid email enumeration.
       return redirectWithError('Registration failed, please try again');
     }
 
@@ -103,11 +101,9 @@ export async function POST(req: NextRequest) {
       return redirectWithError('Registration failed, please try again');
     }
 
-    // Create empty cart for the new user (ignore if it already exists)
     try {
       await supabase.from('carts').insert({ user_id: user.id });
     } catch (err) {
-      // ignore errors creating cart (e.g., already exists) but log for diagnostics
       console.warn('Failed to create cart for user', user.id, err);
     }
 
