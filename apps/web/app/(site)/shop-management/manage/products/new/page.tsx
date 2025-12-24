@@ -13,7 +13,7 @@ export default function NewProductPage() {
   const router = useRouter();
   const t = getClientDict();
   const formRef = useRef<HTMLFormElement>(null);
-  const imageUploaderRef = useRef<ImageUploaderRef>(null); // Ref to access uploaded URLs
+  const imageUploaderRef = useRef<ImageUploaderRef>(null);
   const [loading, setLoading] = useState(true);
   const [shops, setShops] = useState<Shop[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
@@ -49,7 +49,6 @@ export default function NewProductPage() {
     const description = String(fd.get('description') || '');
     const shopId = currentShopId;
 
-    // Get image URLs directly from ImageUploader ref (synchronous, no state race condition)
     const imageUrlsForSubmit = imageUploaderRef.current?.getUploadedUrls() || [];
 
     if (!title || !Number.isFinite(price) || !Number.isFinite(shopId) || shopId <= 0) {
@@ -70,8 +69,7 @@ export default function NewProductPage() {
       if (formRef.current) formRef.current.reset();
       const goBack = confirm('Đã tạo thành công! Bạn có muốn quay lại trang quản lý shop?');
       if (goBack) {
-        router.refresh(); // Revalidate cache
-        // Wait for revalidatePath to complete before navigating
+        router.refresh();
         await new Promise((resolve) => setTimeout(resolve, 100));
         router.push('/shop-management/manage');
       } else {
