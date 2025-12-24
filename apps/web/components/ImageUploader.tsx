@@ -47,14 +47,13 @@ const ImageUploader = forwardRef<ImageUploaderRef, ImageUploaderProps>(
 
       let successCount = 0;
       const totalFiles = Array.from(files).length;
-      // Use ref instead of closure to get current items
       let currentItems = [...itemsRef.current];
 
       for (const file of Array.from(files)) {
         const tempUrl = URL.createObjectURL(file);
         currentItems = [...currentItems, { url: tempUrl, status: 'uploading' }];
         setItems(currentItems);
-        itemsRef.current = currentItems; // Sync ref immediately
+        itemsRef.current = currentItems;
 
         const formData = new FormData();
         formData.append('file', file);
@@ -69,27 +68,24 @@ const ImageUploader = forwardRef<ImageUploaderRef, ImageUploaderProps>(
             const data = await res.json();
             if (data?.url) {
               successCount++;
-              // Replace uploading with actual uploaded image
               currentItems = currentItems.map((item) =>
                 item.url === tempUrl ? { url: data.url as string, status: 'success' } : item
               );
               setItems(currentItems);
-              itemsRef.current = currentItems; // Sync ref immediately
-              // Don't notify here - let useEffect handle it
+              itemsRef.current = currentItems;
             }
           } else {
             const msg = (await res.json().catch(() => null))?.error || 'Upload failed';
             setError(msg);
-            // Remove failed upload
             currentItems = currentItems.filter((i) => i.url !== tempUrl);
             setItems(currentItems);
-            itemsRef.current = currentItems; // Sync ref immediately
+            itemsRef.current = currentItems;
           }
         } catch (err) {
           setError(`Upload failed: ${err}`);
           currentItems = currentItems.filter((i) => i.url !== tempUrl);
           setItems(currentItems);
-          itemsRef.current = currentItems; // Sync ref immediately
+          itemsRef.current = currentItems;
         }
       }
 
