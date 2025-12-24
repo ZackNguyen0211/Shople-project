@@ -127,9 +127,6 @@ export default function NewProductPage() {
         </div>
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 600, margin: 0 }}>Thêm sản phẩm mới</h1>
-          <p className="muted" style={{ margin: '4px 0 0 0' }}>
-            Giao diện giống trang chỉnh sửa sản phẩm
-          </p>
         </div>
       </div>
 
