@@ -22,17 +22,15 @@ export async function POST(request: Request) {
       return Response.json({ success: false, message: 'File must be an image' }, { status: 400 });
     }
 
-    const maxSize = 5 * 1024 * 1024; // 5MB
+    const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
       return Response.json({ success: false, message: 'File is too large' }, { status: 400 });
     }
 
-    // Generate filename
     const ext = file.name.split('.').pop() || 'jpg';
     const filename = `avatar-${user.id}-${Date.now()}.${ext}`;
     const filePath = `avatars/${filename}`;
 
-    // Upload to Supabase Storage
     const supabaseClient = getSupabaseServerClient();
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
@@ -49,7 +47,6 @@ export async function POST(request: Request) {
       return Response.json({ success: false, message: 'Failed to upload file' }, { status: 500 });
     }
 
-    // Get public URL
     const { data } = supabaseClient.storage.from(SUPABASE_BUCKET).getPublicUrl(filePath);
     const avatarUrl = data.publicUrl;
 
@@ -84,7 +81,7 @@ export async function POST(request: Request) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 7,
     });
 
     return Response.json({ success: true, url: avatarUrl });

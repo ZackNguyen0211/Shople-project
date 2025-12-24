@@ -21,7 +21,6 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
   }
 
-  // Find existing owner and shop, mark shop as verified
   const { data: owner, error: ownerError } = await supabase
     .from('users')
     .select('id,email,role')
@@ -58,7 +57,6 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'Failed to update request' }, { status: 500 });
   }
 
-  // Create a notification for the requester
   try {
     await supabase.from('notifications').insert({
       user_id: request.requester_id,
@@ -70,6 +68,5 @@ export async function POST(req: NextRequest, { params }: Params) {
     console.warn('Failed to insert notification', e);
   }
 
-  // Return success response for client to handle redirect
   return NextResponse.json({ ok: true, message: 'Shop verified successfully' });
 }

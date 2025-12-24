@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Demo-only: no real email is sent. We just respond success for UI flow.
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();

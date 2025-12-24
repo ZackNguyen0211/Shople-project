@@ -37,7 +37,6 @@ export default async function AdminOrdersPage({
   const t = getDict(lang);
   const supabase = getDb();
 
-  // Query invoices instead of orders (invoices are paid orders)
   const invoicesQuery = supabase
     .from('invoices')
     .select('order_id,created_at,total,item_count,payload')
@@ -59,7 +58,7 @@ export default async function AdminOrdersPage({
 
     return {
       id: row.order_id,
-      status: 'PAID', // All invoices are completed/paid
+      status: 'PAID',
       created_at: row.created_at,
       total: row.total,
       email: row.payload?.contact?.email || 'N/A',

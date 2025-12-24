@@ -28,7 +28,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   if (error) {
     return NextResponse.json({ error: 'Failed to update request' }, { status: 500 });
   }
-  // Create a notification for the requester
+
   try {
     await supabase.from('notifications').insert({
       user_id: reqRow.requester_id,
@@ -40,6 +40,5 @@ export async function POST(req: NextRequest, { params }: Params) {
     console.warn('Failed to insert notification', e);
   }
 
-  // Return success response for client to handle redirect
   return NextResponse.json({ ok: true, message: 'Shop request rejected' });
 }

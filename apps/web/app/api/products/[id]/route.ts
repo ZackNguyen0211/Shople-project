@@ -79,7 +79,6 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (title) updates.title = title;
   if (description !== undefined) updates.description = description;
   if (Number.isFinite(price)) updates.price = price as number;
-  // Note: shopId cannot be changed to prevent moving products between shops
   if (hasImageUrls) {
     updates.image_url = imageUrls[0] || null;
   }
@@ -144,7 +143,6 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'Failed to delete product' }, { status: 500 });
   }
 
-  // Revalidate cache for shop management page
   revalidatePath('/shop-management/manage');
 
   return NextResponse.json({ ok: true });

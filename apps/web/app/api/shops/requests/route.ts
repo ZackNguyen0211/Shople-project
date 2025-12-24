@@ -3,7 +3,6 @@ import { getAuthCookieName, verifyAuthToken } from '../../../../lib/auth';
 import { getDb } from '../../../../lib/db';
 
 export async function GET(req: NextRequest) {
-  // Admin list (optional usage)
   const token = req.cookies.get(getAuthCookieName())?.value;
   const current = token ? verifyAuthToken(token) : null;
   if (!current || current.role !== 'ADMIN')
@@ -33,7 +32,6 @@ export async function POST(req: NextRequest) {
   if (!current || current.role !== 'SHOP')
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // Accept both JSON and form submissions
   const contentType = req.headers.get('content-type') || '';
   let shopName = '';
   if (contentType.startsWith('application/json')) {
@@ -46,7 +44,7 @@ export async function POST(req: NextRequest) {
   if (!shopName) return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
 
   const supabase = getDb();
-  // Ensure the requester actually owns a shop
+
   const { data: shopRow, error: shopErr } = await supabase
     .from('shops')
     .select('id,name,owner_id,verified')

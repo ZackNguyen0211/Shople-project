@@ -24,7 +24,7 @@ function writeList(items: string[]) {
   const res = NextResponse.json({ ok: true, items });
   res.cookies.set(cookieName(), JSON.stringify(items.slice(0, MAX_ITEMS)), {
     path: '/',
-    maxAge: 60 * 60 * 24 * 180, // 180 days
+    maxAge: 60 * 60 * 24 * 180,
     sameSite: 'lax',
   });
   return res;
@@ -49,7 +49,6 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  // If a specific query is provided, remove only that; otherwise clear all
   try {
     let q = req.nextUrl.searchParams.get('q');
     if (!q) {

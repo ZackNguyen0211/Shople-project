@@ -25,7 +25,6 @@ export async function GET() {
   return response;
 }
 
-// Creation of shops should be an admin action only (via approval flow)
 export async function POST(req: NextRequest) {
   const token = req.cookies.get(getAuthCookieName())?.value;
   const current = token ? verifyAuthToken(token) : null;
