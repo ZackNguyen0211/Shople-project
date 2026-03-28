@@ -224,6 +224,4 @@ This project is open source and available under the [MIT License](LICENSE).
 
 ---
 
-**Made with ❤️ by Zack Nguyen**
-
-⭐ If you find this project helpful, please consider giving it a star on GitHub!
+**Made by Zack Nguyen**
