@@ -19,12 +19,12 @@
     "download-images": "node download-product-images.js"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.6",
     "eslint": "^8.57.0",
     "eslint-config-next": "^14.2.8",
     "prettier": "^3.3.3",
-    "typescript": "^5.6.3",
-    "@types/jsonwebtoken": "^9.0.6",
-    "@types/bcryptjs": "^2.4.6"
+    "typescript": "^5.6.3"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
